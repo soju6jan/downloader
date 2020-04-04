@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  <form id='download_form' name='download_form'>
+  {{ macros.setting_input_text('download_url', '다운로드', placeholder='', desc=['Magnet or Torrent File URL']) }}
+  {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
+  {{ macros.setting_input_text('download_path', '다운로드 경로', value=arg['download_path'], desc=['다운로드 경로. 생략시 토렌트 프로그램의 기본 경로를 사용합니다.']) }}
+  {{ macros.setting_button([['download_start', '다운로드']]) }}
+  </form>
+</div> <!--전체-->
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name']}}";
+var current_data = null;
+var default_torrent_program = "{{arg['default_torrent_program']}}"
+
+
+$(document).ready(function(){
+  $.ajax({
+    url: '/' + package_name + '/ajax/get_setting',
+    type: "POST", 
+    cache: false,
+    data: {},
+    dataType: "json",
+    success: function (data) {
+      current_data = data
+      set_default_torrent_program(default_torrent_program);
+    }
+  });
+});
+
+$('input[type=radio][name=default_torrent_program]').change(function() {
+  set_default_torrent_program(this.value);
+});
+
+function set_default_torrent_program(type) {
+  //console.log(type)
+  //console.log(current_data)
+  $('input[name=default_torrent_program]')[parseInt(type)].checked = true;
+  if ( type == '0') {
+    document.getElementById("download_path").value = current_data.transmission_default_path;
+  } else if ( type == '1') {
+    document.getElementById("download_path").value = current_data.downloadstation_default_path;
+  } else if ( type == '2') {
+    document.getElementById("download_path").value = current_data.qbittorrnet_default_path;
+  } else if ( type == '3') {
+    document.getElementById("download_path").value = current_data.aria2_default_path;
+  }
+}
+
+// 다운로드 버튼
+$("body").on('click', '#download_start', function(e){
+  e.preventDefault();
+  var formData = get_formdata('#download_form');
+  download_url = document.getElementById("download_url").value.trim()
+  if (download_url == '') {
+    $.notify('<strong>다운로드 정보를 입력하세요.</strong>', {
+      type: 'warning'
+    });
+    return;
+  }
+  $.ajax({
+    url: '/' + package_name + '/ajax/add_download',
+    type: "POST", 
+    cache: false,
+    data: formData,
+    dataType: "json",
+    success: function (data) {
+      show_result_add_download(data);
+    }
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
+
+</script>    
+{% endblock %}

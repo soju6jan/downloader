@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  {{ macros.m_button_group([['global_setting_save_btn', '설정 저장']])}}
+  {{ macros.m_row_start('5') }}
+  {{ macros.m_row_end() }}
+  <form id='setting' name='setting'>
+    {{ macros.setting_input_text_and_buttons('downloadstation_url', 'URL', [['downloadstation_web_btn', 'GO']], placeholder='http://xxx.synology.me:5000', value=arg['downloadstation_url'], desc='다운로드스테이션 URL') }}
+    {{ macros.setting_input_text('downloadstation_id', 'ID', value=arg['downloadstation_id'], col='3') }}
+    {{ macros.setting_input_text_and_buttons('downloadstation_pw', '암호', [['downloadstation_test_btn', '접속 확인']], value=arg['downloadstation_pw'], col='4', type='password') }}
+    {{ macros.setting_input_text('downloadstation_default_path', '다운로드 경로', value=arg['downloadstation_default_path'], placeholder='예) video/download', desc=['기본 다운로드 경로. 생략 시 다운로드스테이션 기본 경로를 사용', '/volume 으로 시작하면 안되며, 공유폴더부터 시작해야 합니다.', '경로에 한글이 포함되어 있으면 안 됩니다.']) }}
+  </form>
+</div> <!--전체-->
+
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name']}}";
+var sub = "{{arg['sub'] }}";
+
+$(document).ready(function(){
+});
+
+
+$("body").on('click', '#downloadstation_web_btn', function(e){
+  e.preventDefault();
+  transmission_url = document.getElementById("downloadstation_url").value
+  window.open(transmission_url, "_blank");
+});
+
+
+$("body").on('click', '#downloadstation_test_btn', function(e){
+  e.preventDefault();
+  var formData = get_formdata('#setting');
+  $.ajax({
+    url: '/' + package_name + '/ajax/'+sub+'/test',
+    type: "POST", 
+    cache: false,
+    data: formData,
+    dataType: "json",
+    success: function (data) {
+      if (data.ret == 'success') {
+        $.notify('<strong>접속 성공<br>목록 : '+data.current+'개 </strong>', {
+          type: 'success'
+        });
+      } else {
+        $.notify('<strong>접속 실패<br>에러 : '+data.log+'</strong>', {
+          type: 'warning'
+        });
+      }
+    }
+  });
+});
+
+
+</script>    
+{% endblock %}

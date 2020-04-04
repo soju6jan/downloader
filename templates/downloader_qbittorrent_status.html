@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  {{ macros.m_hr_head_top() }}
+  {{ macros.m_row_start('0') }}
+  {{ macros.m_col(2,  macros.m_strong('Status')) }}
+  {{ macros.m_col(3,  macros.m_strong('Title')) }}
+  {{ macros.m_col(1,  macros.m_strong('Size')) }}
+  {{ macros.m_col(1,  macros.m_strong('Current')) }}
+  {{ macros.m_col(2,  macros.m_strong('Percent')) }}
+  {{ macros.m_col(1,  macros.m_strong('Speed')) }}
+  {{ macros.m_col(2,  macros.m_strong('Action')) }}
+  {{ macros.m_row_end() }}
+  {{ macros.m_hr_head_bottom() }}
+  <div id="list_div"></div>
+</div> <!--전체-->
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name']}}";
+var sub = "{{arg['sub']}}";
+
+
+$(document).ready(function(){
+  var protocol = window.location.protocol;
+  socket = io.connect(protocol + "//" + document.domain + ":" + location.port + "/" + package_name + '_qbittorrent');
+
+  socket.on('on_status', function(data){
+    current_data = data
+    on_status(data)
+  });
+
+  $(function() {
+    $.ajax({
+      url: '/'+package_name+'/ajax/'+sub+'/get_status',
+      type: "POST", 
+      cache: false,
+      data: {},
+      dataType: "json",
+      success: function (data) {
+        on_status(data)
+      }
+    });
+  });
+});
+
+$("body").on('click', '#json_btn', function(e){
+  e.preventDefault();
+  hash = $(this).data('hash')
+  for (i in current_data) {
+    if (hash == current_data[i].hash) {
+      m_modal(current_data[i])
+      break
+    }
+  }
+});
+
+$("body").on('click', '#remove_btn', function(e){
+  e.preventDefault();
+  hash = $(this).data('hash')
+  remove(hash, 'false')
+});
+
+$("body").on('click', '#remove_with_data_btn', function(e){
+  e.preventDefault();
+  hash = $(this).data('hash')
+  remove(hash, 'true')
+});
+
+function remove(hash, include_data) {
+  $.ajax({
+    url: '/' + package_name + '/ajax/'+sub+'/remove',
+    type: "POST", 
+    cache: false,
+    data: {hash:hash, include_data:include_data},
+    dataType: "json",
+    success: function (data) {
+      if (data) {
+        $.notify('<strong>삭제하였습니다.</strong>', {
+          type: 'success'
+        });
+      } else {
+        $.notify('<strong>삭제 실패하였습니다.</strong>', {
+          type: 'warning'
+        });
+      }
+    }
+  });
+}
+
+
+
+function on_status(data) {
+  make_list(data)
+}
+
+
+function make_list(data) {
+  str = ''
+  //index = 0
+  for (i in data) {
+    //console.log(data[i])
+    str += m_row_start();
+    tmp = (parseInt(i)+1) + '.  ';
+    //✔ ✖ ✅
+    //str += m_col(1, tmp);
+    if (data[i].state == 'downloading') {
+      tmp += '🔻다운로드중'
+    } else if (data[i].state == 'queuedUP' || data[i].progress == 1) {
+      tmp += '✔ 완료됨'
+    } else if (data[i].state == 'uploading' || data[i].progress == 1) {
+      tmp += '🔺 시딩중'
+    } else if (data[i].state == 101 || data[i].state == 'error') {
+      tmp += '✖ 에러'
+    } else if (data[i].state == '1' || data[i].state == 'queuedDL') {
+      tmp += '대기중'
+    } else if (data[i].state == "pausedDL") {
+      tmp += '⛔ 일시정지'
+    } else {
+      tmp += data[i].state
+    }
+
+    str += m_col(2, tmp);
+    str += m_col(3, data[i].name);
+    str += m_col(1, humanFileSize(data[i].total_size));
+    
+    str += m_col(1, humanFileSize(data[i].downloaded));
+    percent = (data[i].progress * 100).toFixed(1)
+        
+    if (data[i].total_size == 0) {
+      percent_str = ''
+    } else {
+      percent_str = percent + '%'
+    }
+    tmp = m_progress2('progress_'+(i), percent, percent_str)
+    str += m_col2(2, tmp);
+
+    str += m_col(1, humanFileSize(data[i].dlspeed) + '/s');
+
+    tmp = m_button('json_btn', 'JSON', [{'key':'hash', 'value':data[i].hash}]);
+    tmp += m_button('remove_btn', '삭제', [{'key':'hash', 'value':data[i].hash}]);
+    tmp += m_button('remove_with_data_btn', '삭제(데이터 포함)', [{'key':'hash', 'value':data[i].hash}]);
+    
+    tmp = m_button_group(tmp)
+    str += m_col(2, tmp)
+    
+    str += m_row_end();
+    if (i != data.length -1) str += m_hr();
+  }
+  if (str == '') {
+    str = '<br><h4>큐빗토렌트에 작업이 없습니다.</h4>'
+  }
+  document.getElementById("list_div").innerHTML = str;
+}
+
+</script>    
+{% endblock %}

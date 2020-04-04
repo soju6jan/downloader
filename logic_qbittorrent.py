@@ -1,0 +1,301 @@
+# -*- coding: utf-8 -*-
+#########################################################
+# python
+import os
+import traceback
+import logging
+import re
+import threading
+import json
+import time
+from datetime import datetime
+
+# third-party
+try:
+    from qbittorrent import Client
+except:
+    try:
+        os.system('pip install python-qbittorrent')
+        from synolopy import NasApi
+    except:
+        pass
+
+
+from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify 
+from flask_socketio import SocketIO, emit, send
+from flask_login import login_user, logout_user, current_user, login_required
+
+# sjva 공용
+from framework import db, socketio
+from framework.util import Util, AlchemyEncoder
+
+# 패키지
+from .plugin import package_name, logger
+from .model import ModelSetting, ModelDownloaderItem
+
+#########################################################
+
+class LogicQbittorrent(object):
+    program = None
+
+    @staticmethod
+    def process_ajax(sub, req):
+        try:
+            if sub == 'test':
+                url = req.form['qbittorrnet_url']
+                id = req.form['qbittorrnet_id']
+                pw = req.form['qbittorrnet_pw']
+                ret = LogicQbittorrent.connect_test(url, id, pw)
+                return jsonify(ret)
+            elif sub == 'get_status':
+                return jsonify(LogicQbittorrent.get_status())
+            elif sub == 'remove':
+                data = LogicQbittorrent.remove(request.form['hash'], (req.form['include_data'] == 'true'))
+                return jsonify(data)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+
+    @staticmethod
+    def connect_test(url, id, pw):
+        try:
+            ret = {}
+            qb = Client(url)
+            qb.login(id, pw)
+            torrents = qb.torrents()
+            ret['ret'] = 'success'
+            ret['current'] = len(torrents)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            ret['ret'] = 'fail'
+            ret['log'] = str(e)
+        finally:
+            return ret
+    
+    @staticmethod
+    def program_init():
+        try:
+            url = ModelSetting.get('qbittorrnet_url')
+            if url.strip() == '':
+                return
+            LogicQbittorrent.program = Client(url)
+            LogicQbittorrent.program.login(ModelSetting.get('qbittorrnet_id'), ModelSetting.get('qbittorrnet_pw'))
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+    @staticmethod
+    def add_download(url, path):
+        try:
+            logger.debug(path)
+            logger.debug([path])
+            path = path.encode('utf8')
+            ret = {}
+            if path is not None and path.strip() == '':
+                path = None
+
+            if LogicQbittorrent.program is None:
+                LogicQbittorrent.program_init()
+            if LogicQbittorrent.program is None:
+                ret['ret'] = 'error'
+                ret['error'] = '큐빗토렌트 접속 실패'
+            else:
+                if path is None:
+                    LogicQbittorrent.program.download_from_link(url)
+                else:
+                    tmp = LogicQbittorrent.program.download_from_link(url, savepath=path)
+                #if tmp != 'OK.':
+                #    pass
+                ret['ret'] = 'success'
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            ret['ret'] = 'error'
+            ret['error'] = str(e)
+        finally:
+            ret['download_url'] = url
+            ret['download_path'] = path if path is not None else ''
+            return ret
+    
+    @staticmethod
+    def get_torrent_list():
+        try:
+            if LogicQbittorrent.program is None:
+                return []
+            ret = LogicQbittorrent.program.torrents()
+            return ret
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+
+    @staticmethod
+    def remove(hash, include_data=False):
+        try:
+            if LogicQbittorrent.program is None:
+                return []
+            if include_data:
+                data = LogicQbittorrent.program.delete_permanently(hash)
+            else:
+                data = LogicQbittorrent.program.delete(hash)
+            return True
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+        return False
+
+    status_thread = None
+    status_thread_running = False
+    @staticmethod
+    def status_socket_connect():
+        try:
+            if LogicQbittorrent.status_thread is None:
+                LogicQbittorrent.status_thread_running = True
+                LogicQbittorrent.status_thread = threading.Thread(target=LogicQbittorrent.status_thread_function, args=())
+                LogicQbittorrent.status_thread.start()
+            data = LogicQbittorrent.get_status()
+            #logger.debug(data)
+            return data
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+    
+    @staticmethod
+    def status_thread_function():
+        try:
+            status_interval = ModelSetting.get_int('status_interval')
+            
+            while LogicQbittorrent.status_thread_running:
+                data = LogicQbittorrent.get_status()
+                if ModelSetting.get_bool('auto_remove_completed'):
+                    LogicQbittorrent.remove_completed(data)
+                socketio_callback(data)
+                #emit('on_status', data, namespace='/%s' % package_name)
+                time.sleep(status_interval)
+            logger.debug('status_thread_function end')
+            LogicQbittorrent.status_thread = None
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+
+    @staticmethod
+    def get_status():
+        try:
+            data = LogicQbittorrent.get_torrent_list()
+            return data
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+    @staticmethod
+    def scheduler_function():
+        try:
+            from .logic_normal import LogicNormal
+            auto_remove_completed = ModelSetting.get_bool('auto_remove_completed')
+            data = LogicQbittorrent.get_status()
+            for item in data:
+                #downloader_item = db.session.query(ModelDownloaderItem).filter_by(download_url=item['additional']['detail']['uri']).filter_by(torrent_program='1').order_by(ModelDownloaderItem.id.desc()).first()
+                downloader_item = db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.download_url.like(item['magnet_uri'].split('&')[0]+ '%')).filter_by(torrent_program='2').order_by(ModelDownloaderItem.id.desc()).first()
+
+                if downloader_item is not None:
+                    flag_update = False
+                    if downloader_item.title != item['name']:
+                        downloader_item.title = item['name']
+                        flag_update = True
+                    if item['progress'] >= 1: #100프로면 끝이라고봄
+                        if downloader_item.status != "completed":
+                            downloader_item.status = "completed"
+                            downloader_item.completed_time = datetime.now()
+                            flag_update = True
+                        if auto_remove_completed:
+                            LogicQbittorrent.remove(item['hash'])
+                            LogicNormal.send_telegram('2', item['name'])
+                    elif item['state'] == 'downloading':
+                        if downloader_item.status != "downloading":
+                            downloader_item.status = "downloading"
+                            flag_update = True
+                    elif item['state'] == 'pausedDL':
+                        if downloader_item.status != "stopped":
+                            downloader_item.status = "stopped"
+                            flag_update = True
+                    elif item['state'] == 'queuedDL':
+                        if downloader_item.status != "waiting":
+                            downloader_item.status = "waiting"
+                            flag_update = True
+                    else:
+                        if downloader_item.status != item['status']:
+                            downloader_item.status = item['status']
+                            flag_update = True
+                    if flag_update:
+                        db.session.add(downloader_item)
+                else:
+                    if item['progress'] >= 1 and auto_remove_completed:
+                        LogicQbittorrent.remove(item['hash'])
+                        LogicNormal.send_telegram('2', item['name'])
+            
+            db.session.commit()
+            if ModelSetting.get_bool('auto_remove_completed'):
+                LogicQbittorrent.remove_completed(data)
+            
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            
+    @staticmethod
+    def remove_completed(data):
+        try:
+            for item in data:
+                if item['progress'] >= 1:
+                    #downloader_item = db.session.query(ModelDownloaderItem).filter_by(download_url=item['additional']['detail']['uri']).filter_by(torrent_program='1').with_for_update().order_by(ModelDownloaderItem.id.desc()).first()
+                    downloader_item = db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.download_url.like(item['magnet_uri'].split('&')[0]+ '%')).filter_by(torrent_program='2').with_for_update().order_by(ModelDownloaderItem.id.desc()).first()
+                    logger.debug('remove_completed2 %s', downloader_item)
+                    if downloader_item is not None:
+                        if downloader_item.status != "completed":
+                            downloader_item.title = item['name']
+                            downloader_item.status = "completed"
+                            downloader_item.completed_time = datetime.now()
+                            db.session.commit()
+                    LogicQbittorrent.remove(item['hash'])
+                    from .logic_normal import LogicNormal
+                    LogicNormal.send_telegram('2', item['name'])
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            
+
+sid_list = []
+@socketio.on('connect', namespace='/%s_qbittorrent' % package_name)
+def connect():
+    try:
+        sid_list.append(request.sid)
+        data = LogicQbittorrent.status_socket_connect()
+        #logger.debug(data)
+        socketio_callback(data)
+        #emit('on_status', data, namespace='/%s' % package_name)
+
+        #Logic.send_queue_start()
+    except Exception as e: 
+        logger.error('Exception:%s', e)
+        logger.error(traceback.format_exc())
+
+
+@socketio.on('disconnect', namespace='/%s_qbittorrent' % package_name)
+def disconnect():
+    try:
+        sid_list.remove(request.sid)
+        if not sid_list:
+            LogicQbittorrent.status_thread_running = False
+        logger.debug('socket_disconnect')
+    except Exception as e: 
+        logger.error('Exception:%s', e)
+        logger.error(traceback.format_exc())
+
+def socketio_callback(data):
+    if sid_list:
+        #logger.debug(data)
+        tmp = json.dumps(data, cls=AlchemyEncoder)
+        tmp = json.loads(tmp)
+        socketio.emit('on_status', tmp , namespace='/%s_qbittorrent' % package_name, broadcast=True)

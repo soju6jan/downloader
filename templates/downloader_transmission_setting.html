@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  {{ macros.m_button_group([['global_setting_save_btn', '설정 저장']])}}
+  {{ macros.m_row_start('5') }}
+  {{ macros.m_row_end() }}
+  <form id='setting' name='setting'>
+  {{ macros.setting_input_text_and_buttons('transmission_url', 'URL', [['transmission_web_btn', 'GO']], value=arg['transmission_url'], desc='트랜스미션 URL. Port 필수') }}
+  {{ macros.setting_checkbox('transmission_use_auth', '인증 사용', value=arg['transmission_use_auth']) }}
+  {{ macros.setting_input_text('transmission_id', 'ID', value=arg['transmission_id'], col='3') }}
+  {{ macros.setting_input_text_and_buttons('transmission_pw', '암호', [['transmission_test_btn', '접속 확인']], value=arg['transmission_pw'], col='4', type='password') }}
+  {{ macros.setting_input_text('transmission_default_path', '다운로드 경로', value=arg['transmission_default_path'], desc=['기본 다운로드 경로. 생략시 트랜스미션의 기본 경로를 사용', '트랜스미션 설치 기기의 경로를 입력해야 합니다.']) }}
+  {{ macros.setting_checkbox('transmission_normal_file_download', '일반 파일 다운로드', value=arg['transmission_normal_file_download'], desc=['On : 트랜스미션은 토렌트만 다운로드 할 수 있습니다.', ' 자막 등 일반 파일을 SJVA 대신 다운로드합니다.']) }}
+        
+  <div id="transmission_normal_file_download_div" class="collapse">
+    {{ macros.setting_input_text('transmission_normal_file_download_path', '일반 파일 다운로드 경로', value=arg['transmission_normal_file_download_path'], desc=['SJVA 상의 경로입니다.']) }}
+  </div>
+  </form>
+</div> <!--전체-->
+
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name']}}";
+var sub = "{{arg['sub'] }}";
+
+$(document).ready(function(){
+  use_collapse("transmission_normal_file_download")
+});
+
+
+// transmission go
+$("body").on('click', '#transmission_web_btn', function(e){
+  e.preventDefault();
+  transmission_url = document.getElementById("transmission_url").value
+  window.open(transmission_url, "_blank");
+});
+
+
+// 트랜스미션 접속 확인
+$("body").on('click', '#transmission_test_btn', function(e){
+  e.preventDefault();
+  var formData = get_formdata('#setting');
+  $.ajax({
+    url: '/' + package_name + '/ajax/'+sub+'/test',
+    type: "POST", 
+    cache: false,
+    data: formData,
+    dataType: "json",
+    success: function (data) {
+      if (data.ret == 'success') {
+        $.notify('<strong>접속 성공<br>목록 : '+data.current+'개 </strong>', {
+          type: 'success'
+        });
+      } else {
+        $.notify('<strong>접속 실패<br>에러 : '+data.log+'</strong>', {
+          type: 'warning'
+        });
+      }
+    }
+  });
+});
+
+$('#transmission_normal_file_download').change(function() {
+  use_collapse('transmission_normal_file_download');
+});
+
+</script>    
+{% endblock %}
