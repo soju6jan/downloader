@@ -191,20 +191,10 @@ def ajax(sub):
         elif sub == 'web_list':
             ret = ModelDownloaderItem.web_list(request)
             return jsonify(ret)
-
-
-        
-        
+ 
     except Exception as e: 
         logger.error('Exception:%s', e)
         logger.error(traceback.format_exc())  
-
-
-
-
-
-
-
 
 
 
@@ -222,43 +212,4 @@ def api(sub):
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
-
-
-
-sid_list = []
-@socketio.on('connect', namespace='/%s' % package_name)
-def connect():
-    try:
-        logger.debug('socket_connect')
-        sid_list.append(request.sid)
-        #emit('on_connect', Logic.current_data )
-        
-        data = LogicNormal.status_socket_connect()
-        #logger.debug(data)
-        socketio_callback(data)
-        #emit('on_status', data, namespace='/%s' % package_name)
-
-        #Logic.send_queue_start()
-    except Exception as e: 
-        logger.error('Exception:%s', e)
-        logger.error(traceback.format_exc())
-
-
-@socketio.on('disconnect', namespace='/%s' % package_name)
-def disconnect():
-    try:
-        sid_list.remove(request.sid)
-        if not sid_list:
-            LogicNormal.status_thread_running = False
-        logger.debug('socket_disconnect')
-    except Exception as e: 
-        logger.error('Exception:%s', e)
-        logger.error(traceback.format_exc())
-
-def socketio_callback(data):
-    if sid_list:
-        #logger.debug(data)
-        tmp = json.dumps(data, cls=AlchemyEncoder)
-        tmp = json.loads(tmp)
-        socketio.emit('on_status', tmp , namespace='/%s' % package_name, broadcast=True)
 
