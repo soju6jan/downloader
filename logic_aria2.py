@@ -109,6 +109,8 @@ class LogicAria2(object):
     def get_torrent_list():
         try:
             #data = LogicAria2.jsonrpc('aria2.tellStatus')
+            if ModelSetting.get('aria2_url') == '':
+                return []
             jsonreq = json.dumps([
                 {'jsonrpc':'2.0', 'id':'sjva', 'method':'aria2.tellActive'},
                 {'jsonrpc':'2.0', 'id':'sjva', 'method':'aria2.tellWaiting', 'params':[0,1000]},
@@ -153,8 +155,9 @@ class LogicAria2(object):
                         ret.append(entity)
             return ret
         except Exception as e: 
-            logger.error('Exception:%s', e)
-            logger.error(traceback.format_exc())
+            #logger.error('Exception:%s', e)
+            #logger.error(traceback.format_exc())
+            pass
         return []
 
     @staticmethod

@@ -52,7 +52,8 @@ class Logic(object):
         'qbittorrnet_normal_file_download' : 'False',
         'qbittorrnet_normal_file_download_path' : '',
 
-        'aria2_url' : 'http://localhost/aria2/jsonrpc',
+        #'aria2_url' : 'http://localhost/aria2/jsonrpc',
+        'aria2_url' : '',
         'aria2_default_path' : os.path.join(path_data, 'aria2'),
     }
 
