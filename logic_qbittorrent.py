@@ -226,8 +226,8 @@ class LogicQbittorrent(object):
                             downloader_item.status = "waiting"
                             flag_update = True
                     else:
-                        if downloader_item.status != item['status']:
-                            downloader_item.status = item['status']
+                        if downloader_item.status != item['state']:
+                            downloader_item.status = item['state']
                             flag_update = True
                     if flag_update:
                         db.session.add(downloader_item)

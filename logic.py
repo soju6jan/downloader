@@ -173,7 +173,23 @@ class Logic(object):
 
     ############################################################
 
+
+    # 타 플러그인
+
     @staticmethod
     def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type=''):
         return LogicNormal.add_download2(download_url, default_torrent_program, download_path, request_type=request_type, request_sub_type=request_sub_type)
-        
+    
+    @staticmethod
+    def get_default_value():
+        default_program = ModelSetting.get('default_torrent_program')
+        default_path = ''
+        if default_program == '0':
+            default_path = ModelSetting.get('transmission_default_path')
+        elif default_program == '1':
+            default_path = ModelSetting.get('downloadstation_default_path')
+        elif default_program == '2':
+            default_path = ModelSetting.get('qbittorrnet_default_path')
+        elif default_program == '3':
+            default_path = ModelSetting.get('aria2_default_path')
+        return default_program, default_path

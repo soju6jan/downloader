@@ -120,13 +120,14 @@ class LogicAria2(object):
                 for tmp in t1['result']:
                     exist = False
                     for r in ret:
-                        if r['gid'] == tmp['gid'] or r['infoHash'] == tmp['infoHash']:
-                            if r['name'] == r['infoHash']:
-                                ret.remove(r)
-                                break
-                            else:
-                                exist = True
-                                break
+                        if 'infohash' in r:
+                            if r['gid'] == tmp['gid'] or r['infoHash'] == tmp['infoHash']:
+                                if r['name'] == r['infoHash']:
+                                    ret.remove(r)
+                                    break
+                                else:
+                                    exist = True
+                                    break
                     if exist == False:
                         entity = {}
                         entity['gid'] = tmp['gid']
@@ -134,14 +135,19 @@ class LogicAria2(object):
                         entity['completedLength'] = tmp['completedLength']
                         entity['downloadSpeed'] = tmp['downloadSpeed']
                         entity['dir'] = tmp['dir']
-                        entity['infoHash'] = tmp['infoHash']
+                        entity['infoHash'] = tmp['infoHash'] if 'infohash' in tmp else ''
                         entity['status'] = tmp['status']
                         entity['totalLength'] = tmp['totalLength']
-                        if 'info' not in tmp['bittorrent']:
-                            entity['name'] = tmp['infoHash']
-                            entity['progress'] = 0
+                        if 'bittorrent' in tmp:
+                            if 'info' not in tmp['bittorrent']:
+                                entity['name'] = tmp['infoHash']
+                                entity['progress'] = 0
+                            else:
+                                entity['name'] = tmp['bittorrent']['info']['name']
+                                entity['progress'] = float(entity['completedLength'])/float(entity['totalLength'])
                         else:
-                            entity['name'] = tmp['bittorrent']['info']['name']
+                            #logger.debug(tmp)
+                            entity['name'] = os.path.basename(tmp['files'][0]['path'])
                             entity['progress'] = float(entity['completedLength'])/float(entity['totalLength'])
                         #logger.debug(tmp['bittorrent'])
                         ret.append(entity)
