@@ -16,7 +16,7 @@ try:
 except:
     try:
         os.system('pip install python-qbittorrent')
-        from synolopy import NasApi
+        from qbittorrent import Client
     except:
         pass
 
@@ -272,11 +272,7 @@ def connect():
     try:
         sid_list.append(request.sid)
         data = LogicQbittorrent.status_socket_connect()
-        #logger.debug(data)
         socketio_callback(data)
-        #emit('on_status', data, namespace='/%s' % package_name)
-
-        #Logic.send_queue_start()
     except Exception as e: 
         logger.error('Exception:%s', e)
         logger.error(traceback.format_exc())
@@ -295,7 +291,6 @@ def disconnect():
 
 def socketio_callback(data):
     if sid_list:
-        #logger.debug(data)
         tmp = json.dumps(data, cls=AlchemyEncoder)
         tmp = json.loads(tmp)
         socketio.emit('on_status', tmp , namespace='/%s_qbittorrent' % package_name, broadcast=True)
