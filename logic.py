@@ -194,3 +194,7 @@ class Logic(object):
         elif default_program == '3':
             default_path = ModelSetting.get('aria2_default_path')
         return default_program, default_path
+
+    @staticmethod
+    def is_available_normal_download():
+        return True
