@@ -56,9 +56,9 @@ class LogicNormal(object):
                 return
             else:
                 LogicNormal.pre_telegram_title = title
-            if where == 't':
+            if where == '0':
                 msg = '트랜스미션'
-            elif where == 'd':
+            elif where == '1':
                 msg = '다운로드스테이션'
             elif where == '2':
                 msg = '큐빗토렌트'
