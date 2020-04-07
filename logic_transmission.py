@@ -212,7 +212,7 @@ class LogicTransmission(object):
             open(filepath, 'wb').write(r.content)
             data = {'type':'success', 'msg' : u'다운로드 성공<br>' + filepath}
         except Exception as e: 
-            data = {'type':'warning', 'msg' : u'다운로드 실패<br>' + filepath, 'url':'/downloader/download'}
+            data = {'type':'warning', 'msg' : u'다운로드 실패<br>' + filepath, 'url':'/downloader/list'}
             try:
                 logger.error('Exception:%s', e)
             except:

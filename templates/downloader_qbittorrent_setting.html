@@ -10,6 +10,9 @@
     {{ macros.setting_input_text('qbittorrnet_id', 'ID', value=arg['qbittorrnet_id'], col='3') }}
     {{ macros.setting_input_text_and_buttons('qbittorrnet_pw', '암호', [['test_btn', '접속 확인']], value=arg['qbittorrnet_pw'], col='4', type='password') }}
     {{ macros.setting_input_text('qbittorrnet_default_path', '다운로드 경로', value=arg['qbittorrnet_default_path'], desc=['큐빗토렌트가 구동되는 곳의 경로입니다.']) }}
+    {{ macros.setting_checkbox('qbittorrnet_normal_file_download', 'HTTP 링크 SJVA가 다운로드', value=arg['qbittorrnet_normal_file_download'], desc=['On : 큐빗토렌트는 토렌트만 다운로드 할 수 있습니다.', 'HTTP링크는 SJVA 대신 다운로드합니다.', '트랜스미션은 토렌트파일이 아닌 경우 실패 메시지를 받아서 SJVA가 받지만, 큐빗토렌트는 그런 에러를 알려주지 않아서 HTTP 링크는 무조건 SJVA가 다운로드 합니다.', 'HTTP로 토렌트파일을 받을 경우에는 토렌트파일만 받게 됩니다.']) }}
+    <div id="qbittorrnet_normal_file_download_div" class="collapse">
+      {{ macros.setting_input_text('qbittorrnet_normal_file_download_path', '일반 파일 다운로드 경로', value=arg['qbittorrnet_normal_file_download_path'], desc=['SJVA 상의 경로입니다.']) }}
     </div>
 
   </form>

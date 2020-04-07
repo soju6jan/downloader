@@ -9,6 +9,7 @@ import threading
 import json
 import time
 from datetime import datetime
+import requests
 
 # third-party
 try:
@@ -95,20 +96,28 @@ class LogicQbittorrent(object):
             ret = {}
             if path is not None and path.strip() == '':
                 path = None
+            if ModelSetting.get_bool('qbittorrnet_normal_file_download') and url.startswith('http'):
+                th = threading.Thread(target=LogicQbittorrent.download_thread_function, args=(url,))
+                th.start()
+                ret['ret'] = 'success2'
 
-            if LogicQbittorrent.program is None:
-                LogicQbittorrent.program_init()
-            if LogicQbittorrent.program is None:
-                ret['ret'] = 'error'
-                ret['error'] = '큐빗토렌트 접속 실패'
             else:
-                if path is None:
-                    LogicQbittorrent.program.download_from_link(url)
+                if LogicQbittorrent.program is None:
+                    LogicQbittorrent.program_init()
+                if LogicQbittorrent.program is None:
+                    ret['ret'] = 'error'
+                    ret['error'] = '큐빗토렌트 접속 실패'
                 else:
-                    tmp = LogicQbittorrent.program.download_from_link(url, savepath=path)
-                #if tmp != 'OK.':
-                #    pass
-                ret['ret'] = 'success'
+                    if path is None:
+                        tmp = LogicQbittorrent.program.download_from_link(url)
+                    else:
+                        tmp = LogicQbittorrent.program.download_from_link(url, savepath=path)
+                    logger.debug(tmp)
+                    logger.debug('111111111111111')
+
+                    #if tmp != 'OK.':
+                    #    pass
+                    ret['ret'] = 'success'
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -119,6 +128,43 @@ class LogicQbittorrent(object):
             ret['download_path'] = path if path is not None else ''
             return ret
     
+    @staticmethod
+    def get_filename_from_cd(cd):
+        """
+        Get filename from content-disposition
+        """
+        if not cd:
+            return None
+        fname = re.findall('filename=(.+)', cd)
+        if len(fname) == 0:
+            return None
+        return fname[0].replace('"', '')
+
+    @staticmethod
+    def download_thread_function(url):
+        try:
+            download_path = ModelSetting.get('qbittorrnet_normal_file_download_path')
+            r = requests.get(url, allow_redirects=True)
+            filename = LogicQbittorrent.get_filename_from_cd(r.headers.get('content-disposition'))
+            if not os.path.exists(download_path):
+                os.makedirs(download_path)
+            filepath = os.path.join(download_path, filename)
+            logger.debug('Direct download : %s', filepath)
+            open(filepath, 'wb').write(r.content)
+            data = {'type':'success', 'msg' : u'다운로드 성공<br>' + filepath}
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            data = {'type':'warning', 'msg' : u'다운로드 실패<br>' + filepath, 'url':'/downloader/list'}
+            try:
+                logger.error('Exception:%s', e)
+            except:
+                pass
+            #logger.error(traceback.format_exc())
+        finally:
+            socketio.emit("notify", data, namespace='/framework', broadcast=True) 
+
+
     @staticmethod
     def get_torrent_list():
         try:
