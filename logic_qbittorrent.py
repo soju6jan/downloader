@@ -90,8 +90,6 @@ class LogicQbittorrent(object):
     @staticmethod
     def add_download(url, path):
         try:
-            logger.debug(path)
-            logger.debug([path])
             path = path.encode('utf8')
             ret = {}
             if path is not None and path.strip() == '':
@@ -100,7 +98,6 @@ class LogicQbittorrent(object):
                 th = threading.Thread(target=LogicQbittorrent.download_thread_function, args=(url,))
                 th.start()
                 ret['ret'] = 'success2'
-
             else:
                 if LogicQbittorrent.program is None:
                     LogicQbittorrent.program_init()
@@ -112,11 +109,6 @@ class LogicQbittorrent(object):
                         tmp = LogicQbittorrent.program.download_from_link(url)
                     else:
                         tmp = LogicQbittorrent.program.download_from_link(url, savepath=path)
-                    logger.debug(tmp)
-                    logger.debug('111111111111111')
-
-                    #if tmp != 'OK.':
-                    #    pass
                     ret['ret'] = 'success'
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -251,7 +243,7 @@ class LogicQbittorrent(object):
                     if downloader_item.title != item['name']:
                         downloader_item.title = item['name']
                         flag_update = True
-                    if item['progress'] >= 1: #100프로면 끝이라고봄
+                    if LogicQbittorrent.is_completed(item):
                         if downloader_item.status != "completed":
                             downloader_item.status = "completed"
                             downloader_item.completed_time = datetime.now()
@@ -278,7 +270,7 @@ class LogicQbittorrent(object):
                     if flag_update:
                         db.session.add(downloader_item)
                 else:
-                    if item['progress'] >= 1 and auto_remove_completed:
+                    if LogicQbittorrent.is_completed(item) and auto_remove_completed:
                         LogicQbittorrent.remove(item['hash'])
                         LogicNormal.send_telegram('2', item['name'])
             
@@ -289,12 +281,18 @@ class LogicQbittorrent(object):
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
-            
+
+
+    @staticmethod
+    def is_completed(data):
+        return (data['state'] in ['uploading', 'pausedUP', 'stalledUP', 'checkingUP'])
+
+
     @staticmethod
     def remove_completed(data):
         try:
             for item in data:
-                if item['progress'] >= 1:
+                if LogicQbittorrent.is_completed(item):
                     #downloader_item = db.session.query(ModelDownloaderItem).filter_by(download_url=item['additional']['detail']['uri']).filter_by(torrent_program='1').with_for_update().order_by(ModelDownloaderItem.id.desc()).first()
                     downloader_item = db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.download_url.like(item['magnet_uri'].split('&')[0]+ '%')).filter_by(torrent_program='2').with_for_update().order_by(ModelDownloaderItem.id.desc()).first()
                     logger.debug('remove_completed2 %s', downloader_item)
