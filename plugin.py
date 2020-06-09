@@ -15,7 +15,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 
 # sjva 공용
 from framework.logger import get_logger
-from framework import app, db, scheduler, path_data, socketio
+from framework import app, db, scheduler, path_data, socketio, check_api
 from framework.util import Util, AlchemyEncoder
 from system.logic import SystemLogic
 
@@ -202,14 +202,15 @@ def ajax(sub):
 # API
 #########################################################
 @blueprint.route('/api/<sub>', methods=['GET', 'POST'])
+@check_api
 def api(sub):
-    logger.debug('AJAX %s %s', package_name, sub)
-    # 설정 저장
-    if sub == 'add_download':
-        try:
-            ret = Logic.add_download_api(request)
+    # 사용하는 곳이 있는가?
+    # 2020-06-09 sjva.me에서 호출
+    try:
+        if sub == 'add_download':
+            ret = LogicNormal.add_download_api(request)
             return jsonify(ret)
-        except Exception as e: 
-            logger.error('Exception:%s', e)
-            logger.error(traceback.format_exc())
+    except Exception as e: 
+        logger.error('Exception:%s', e)
+        logger.error(traceback.format_exc())
 

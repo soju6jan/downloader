@@ -143,7 +143,6 @@ class LogicNormal(object):
     def scheduler_function():
         try:
             logger.debug('scheduler_function')
-            
             LogicTransmission.scheduler_function()
             LogicDownloadStation.scheduler_function()
             LogicQbittorrent.scheduler_function()
@@ -155,33 +154,27 @@ class LogicNormal(object):
 
 
 
-
-    
-
-    
-    
+    # sjva.me
     @staticmethod
-    def add_download_api(request):
+    def add_download_api(req):
         try:
-            setting_list = db.session.query(ModelSetting).all()
-            arg = Util.db_list_to_dict(setting_list)
-            download_url = request.args.get('download_url')
+            logger.debug(req.form)
+            url = req.form['url'] if 'url' in req.form else None
+            subs = req.form['subs'] if 'subs' in req.form else None
 
-            if download_url is None:
-                return {'ret':'fail'}
+            if subs is not None:
+                for tmp in subs.split('|'):
+                    ret = LogicNormal.add_download2(tmp, ModelSetting.get('default_torrent_program'), None, request_type='sjva.me', request_sub_type='sub')
             
-            default_torrent_program = request.args.get('default_torrent_program')
-            
-            download_path = request.args.get('download_path')
-            return LogicNormal.add_download2(download_url, default_torrent_program, download_path)
+            if url is not None and url.strip() != '':
+                ret = LogicNormal.add_download2(url, ModelSetting.get('default_torrent_program'), None, request_type='sjva.me', request_sub_type='magnet')
+            return ret
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
-            return 'fail'
-    
+  
     
 
-    
   
 
     @staticmethod
