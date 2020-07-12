@@ -157,6 +157,13 @@ class LogicTransmission(object):
             if LogicTransmission.program is None:
                 ret['ret'] = 'error'
                 ret['error'] = '트랜스미션 접속 실패'
+
+            ######################## added
+            if ModelSetting.get_bool('transmission_tracker'):
+                tracker_list = [tracker.strip() for tracker in ModelSetting.get('transmission_tracker_list').split('\n') if tracker.strip() != '']
+                for tracker in tracker_list:
+                    url += '&tr=' + tracker
+            ########################
             
             if path is not None and path.strip() == '':
                 path = None

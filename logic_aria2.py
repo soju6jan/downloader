@@ -89,6 +89,13 @@ class LogicAria2(object):
             if path is not None and path.strip() == '':
                 path = None
 
+            ######################## added
+            if ModelSetting.get_bool('aria2_tracker'):
+                tracker_list = [tracker.strip() for tracker in ModelSetting.get('aria2_tracker_list').split('\n') if tracker.strip() != '']
+                for tracker in tracker_list:
+                    url += '&tr=' + tracker
+            ########################
+
             if ModelSetting.get('aria2_url') == '':
                 ret['ret'] = 'error'
                 ret['error'] = 'aria2 접속 실패'

@@ -10,6 +10,14 @@
     {{ macros.setting_input_text('qbittorrnet_id', 'ID', value=arg['qbittorrnet_id'], col='3') }}
     {{ macros.setting_input_text_and_buttons('qbittorrnet_pw', '암호', [['test_btn', '접속 확인']], value=arg['qbittorrnet_pw'], col='4', type='password') }}
     {{ macros.setting_input_text('qbittorrnet_default_path', '다운로드 경로', value=arg['qbittorrnet_default_path'], desc=['큐빗토렌트가 구동되는 곳의 경로입니다.']) }}
+
+    <!--added-->
+    {{ macros.setting_checkbox('qbittorrnet_tracker', '트래커 자동 추가', value=arg['qbittorrnet_tracker'], desc=['On : 토렌트 추가 시 트래커를 자동으로 추가합니다.']) }}
+    <div id="qbittorrnet_tracker_div" class="collapse">
+      {{ macros.setting_input_textarea('qbittorrnet_tracker_list', '트래커 목록', value=arg['qbittorrnet_tracker_list'], desc=['이 곳에 있는 트래커들이 자동으로 추가됩니다. 구분자 엔터']) }}
+    </div>
+    <!--added-->
+
     {{ macros.setting_checkbox('qbittorrnet_normal_file_download', 'HTTP 링크 SJVA가 다운로드', value=arg['qbittorrnet_normal_file_download'], desc=['On : 큐빗토렌트는 토렌트만 다운로드 할 수 있습니다.', 'HTTP링크는 SJVA 대신 다운로드합니다.', '트랜스미션은 토렌트파일이 아닌 경우 실패 메시지를 받아서 SJVA가 받지만, 큐빗토렌트는 그런 에러를 알려주지 않아서 HTTP 링크는 무조건 SJVA가 다운로드 합니다.', 'HTTP로 토렌트파일을 받을 경우에는 토렌트파일만 받게 됩니다.']) }}
     <div id="qbittorrnet_normal_file_download_div" class="collapse">
       {{ macros.setting_input_text('qbittorrnet_normal_file_download_path', '일반 파일 다운로드 경로', value=arg['qbittorrnet_normal_file_download_path'], desc=['SJVA 상의 경로입니다.']) }}
@@ -24,14 +32,15 @@ var package_name = "{{arg['package_name']}}";
 var sub = "{{arg['sub'] }}";
 
 $(document).ready(function(){
+  use_collapse("qbittorrnet_tracker");
   use_collapse("qbittorrnet_normal_file_download")
 });
 
 
 $("body").on('click', '#web_btn', function(e){
   e.preventDefault();
-  transmission_url = document.getElementById("qbittorrnet_url").value
-  window.open(transmission_url, "_blank");
+  qbittorrnet_url = document.getElementById("qbittorrnet_url").value
+  window.open(qbittorrnet_url, "_blank");
 });
 
 
@@ -56,6 +65,10 @@ $("body").on('click', '#test_btn', function(e){
       }
     }
   });
+});
+
+$('#qbittorrnet_tracker').change(function () {
+  use_collapse('qbittorrnet_tracker');
 });
 
 $('#qbittorrnet_normal_file_download').change(function() {

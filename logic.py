@@ -39,11 +39,15 @@ class Logic(object):
         'transmission_default_path' : '',
         'transmission_normal_file_download' : 'False',
         'transmission_normal_file_download_path' : '',
+        'transmission_tracker': 'False',
+        'transmission_tracker_list': '',
         
         'downloadstation_url' : '',
         'downloadstation_id' : '',
         'downloadstation_pw' : '',
         'downloadstation_default_path' : '',
+        'downloadstation_tracker': 'False',
+        'downloadstation_tracker_list': '',
 
         'qbittorrnet_url' : '',
         'qbittorrnet_id' : '',
@@ -51,10 +55,14 @@ class Logic(object):
         'qbittorrnet_default_path' : '',
         'qbittorrnet_normal_file_download' : 'False',
         'qbittorrnet_normal_file_download_path' : '',
+        'qbittorrnet_tracker': 'False',
+        'qbittorrnet_tracker_list': '',
 
         #'aria2_url' : 'http://localhost/aria2/jsonrpc',
         'aria2_url' : '',
         'aria2_default_path' : os.path.join(path_data, 'aria2'),
+        'aria2_tracker': 'False',
+        'aria2_tracker_list': '',
     }
 
     @staticmethod

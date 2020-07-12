@@ -8,7 +8,13 @@
   <form id='setting' name='setting'>
     {{ macros.setting_input_text('aria2_url', 'URL', value=arg['aria2_url'], desc='aria2 jsonrpc 경로') }}
     {{ macros.setting_input_text('aria2_default_path', '다운로드 경로', value=arg['aria2_default_path'], desc=None) }}
+    
+    <!--added-->
+    {{ macros.setting_checkbox('aria2_tracker', '트래커 자동 추가', value=arg['aria2_tracker'], desc=['On : 토렌트 추가 시 트래커를 자동으로 추가합니다.']) }}
+    <div id="aria2_tracker_div" class="collapse">
+      {{ macros.setting_input_textarea('aria2_tracker_list', '트래커 목록', value=arg['aria2_tracker_list'], desc=['이 곳에 있는 트래커들이 자동으로 추가됩니다. 구분자 엔터']) }}
     </div>
+    <!--added-->
 
   </form>
 </div> <!--전체-->
@@ -19,6 +25,7 @@ var package_name = "{{arg['package_name']}}";
 var sub = "{{arg['sub'] }}";
 
 $(document).ready(function(){
+  use_collapse("aria2_tracker");
 });
 
 $("body").on('click', '#test_btn', function(e){
@@ -42,6 +49,10 @@ $("body").on('click', '#test_btn', function(e){
       }
     }
   });
+});
+
+$('#aria2_tracker').change(function () {
+  use_collapse('aria2_tracker');
 });
 
 </script>    
