@@ -32,6 +32,7 @@ class Logic(object):
         'status_interval' : '5',
         'download_completed_telegram_notify' : 'False',
 
+        'use_download_name': 'False',
         'use_tracker': 'False',
         'tracker_list': '',
         'tracker_list_manual': '',

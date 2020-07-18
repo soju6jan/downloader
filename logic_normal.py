@@ -30,6 +30,7 @@ from framework.logger import get_logger
 from framework import app, db, scheduler, path_app_root
 from framework.job import Job
 from framework.util import Util
+from system.model import ModelSetting as SystemModelSetting
 from system.logic import SystemLogic
 
 # 패키지
@@ -94,14 +95,21 @@ class LogicNormal(object):
     def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type=''):
         try:
 
-            ######################## TODO: 다른 플러그인으로 api통신 어떻게하지
-            # try:
-            #     data = {'uri_url': download_url}
-            #     raw_info = requests.get('http://localhost:9999/torrent_info/ajax/get_torrent_info').content.decode('utf8')
-            #     download_url += '&dn=' + raw_info.info.name
-            #     logger.debug("##########################\n######name:%s############\n#########", raw_info.info.name)
-            # except:
-            #     pass
+            ######################## add name to magnet
+            if ModelSetting.get_bool('use_download_name'):
+                try:
+                    data = {'uri': download_url}
+                    url = '%s/torrent_info/api/json' % (SystemModelSetting.get('ddns'))
+                    if SystemModelSetting.get_bool('auth_use_apikey'):
+                        url += '?apikey=%s' % SystemModelSetting.get('auth_apikey')
+                    
+                    raw_info = requests.get(url, data).json()
+                    if raw_info[u'success'] == ('false' or False):
+                        # logger.debug("log: %d", str(raw_info[u'log']))
+                    else:
+                        download_url += '&dn=' + raw_info[u'info'][u'name']
+                except:
+                    pass
             ######################## torrent_tracker
             if ModelSetting.get_bool('use_tracker'):
                 tracker_list = []
