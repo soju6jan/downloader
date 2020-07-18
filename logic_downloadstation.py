@@ -89,12 +89,6 @@ class LogicDownloadStation(object):
     @staticmethod
     def add_download(url, path):
         try:
-            ######################## added
-            if ModelSetting.get_bool('downloadstation_tracker'):
-                tracker_list = [tracker.strip() for tracker in ModelSetting.get('downloadstation_tracker_list').split('\n') if tracker.strip() != '']
-                for tracker in tracker_list:
-                    url += '&tr=' + tracker
-            ########################
             logger.debug(path)
             logger.debug([path])
             path = path.encode('utf8')

@@ -90,12 +90,6 @@ class LogicQbittorrent(object):
     @staticmethod
     def add_download(url, path):
         try:
-            ######################## added
-            if ModelSetting.get_bool('qbittorrnet_tracker'):
-                tracker_list = [tracker.strip() for tracker in ModelSetting.get('qbittorrnet_tracker_list').split('\n') if tracker.strip() != '']
-                for tracker in tracker_list:
-                    url += '&tr=' + tracker
-            ########################
             path = path.encode('utf8')
             ret = {}
             if path is not None and path.strip() == '':

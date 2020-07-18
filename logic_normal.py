@@ -83,6 +83,14 @@ class LogicNormal(object):
             default_torrent_program = request.form['default_torrent_program'] if 'default_torrent_program' in request.form else None
             download_path = request.form['download_path'] if 'download_path'  in request.form else None
 
+            ######################## added
+            if ModelSetting.get_bool('use_tracker'):
+                tracker_list = [tracker.strip() for tracker in ModelSetting.get('tracker_list').split('\n') if tracker.strip() != '']
+                tracker_list += [tracker.strip() for tracker in ModelSetting.get('tracker_list_manual').split('\n') if tracker.strip() != '']
+                for tracker in tracker_list:
+                    download_url += '&tr=' + tracker
+            ########################
+
             return LogicNormal.add_download2(download_url, default_torrent_program, download_path)
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -123,6 +131,14 @@ class LogicNormal(object):
             ret = {'ret':'error'}
         finally:
             return ret
+
+    @staticmethod
+    def update_tracker():
+        # https://github.com/ngosang/trackerslist
+        trackers_url_from = 'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt'
+        new_trackers = requests.get(trackers_url_from).content.decode('utf8')
+        ModelSetting.set('trackers_list', new_trackers)
+        ModelSetting.set('tracker_last_update', datetime.now().strftime('%Y-%m-%d'))
 
 
     @staticmethod
