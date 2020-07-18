@@ -19,15 +19,15 @@
       {{ macros.setting_checkbox('auto_start', '시작시 자동실행', value=arg['auto_start'], desc='On : 시작시 자동으로 스케쥴러에 등록됩니다.') }}
       {{ macros.setting_checkbox('auto_remove_completed', '프로그램에서 완료 목록 삭제', value=arg['auto_remove_completed'], desc='On : 스케쥴러 동작시 혹은 상태 화면 요청시 삭제합니다.') }}
       {{ macros.setting_checkbox('download_completed_telegram_notify', '프로그램에서 완료 목록 삭제시 알림', value=arg['download_completed_telegram_notify'], desc=['On : "프로그램에서 완료 목록 삭제"가 On 되어 있는 경우 삭제시 알림을 보냅니다.', 'ID : downloader_completed_remove']) }}
+      {{ macros.setting_input_int('status_interval', '상태 화면 갱신 주기', value=arg['status_interval'], min='1', placeholder='5', desc='second 단위') }}
+      {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
       <!--added-->
       {{ macros.setting_checkbox('use_tracker', '트래커 자동 추가', value=arg['use_tracker'], desc=['On : 토렌트 추가 시 트래커를 자동으로 추가합니다.']) }}
       <div id="use_tracker_div" class="collapse">
-        {{ macros.info_text("", '', value='자동으로 트래커를 가져옵니다. 주기 1일', desc="https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt") }}
-        {{ macros.setting_input_textarea('tracker_list_manual', '트래커 추가 목록', value=arg['tracker_list_manual'], desc=['기본 트래커를 포함해서 이 목록도 추가됩니다. 구분자 엔터']) }}
+        {{ macros.setting_input_textarea('tracker_list_manual', '트래커 목록', value=arg['tracker_list_manual'], desc=['기본 트래커를 포함해서 이 목록도 추가됩니다. 구분자 엔터']) }}
+        {{ macros.info_text("", '', value='아래 기본 트래커를 자동으로 추가합니다. (매일 갱신)', desc=arg['tracker_list']) }}
       </div>
       <!--added-->
-      {{ macros.setting_input_int('status_interval', '상태 화면 갱신 주기', value=arg['status_interval'], min='1', placeholder='5', desc='second 단위') }}
-      {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
     {{ macros.m_tab_content_end() }}
 
     {{ macros.m_tab_content_start('etc', false) }}

@@ -5,6 +5,8 @@ import os
 import traceback
 import time
 import threading
+import requests
+from datetime import datetime
 
 # third-party
 
@@ -29,10 +31,11 @@ class Logic(object):
         'auto_remove_completed': 'True', 
         'status_interval' : '5',
         'download_completed_telegram_notify' : 'False',
+
         'use_tracker': 'False',
         'tracker_list': '',
         'tracker_list_manual': '',
-        'tracker_last_update': '1970-01-01'
+        'tracker_last_update': '1970-01-01',
 
         'default_torrent_program' : '0',
 
@@ -83,9 +86,14 @@ class Logic(object):
                 Logic.scheduler_start()
 
             # tracker 자동 업데이트: 주기 1일
-            tracker_last_update = ModelSetting.get('tracker_last_update')
-            if (datetime.now() - datetime.strptime(tracker_last_update, '%Y-%m-%d')).days >= 1:
-                LogicNormal.update_tracker()
+            if (datetime.now() - datetime.strptime(ModelSetting.get('tracker_last_update'), '%Y-%m-%d')).days >= 1:
+                trackers_url_from = 'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt'
+                new_trackers = requests.get(trackers_url_from).content.decode('utf8')
+                if len(new_trackers.strip()) != 0:
+                    ModelSetting.set('tracker_list', new_trackers)
+                    ModelSetting.set('tracker_last_update', datetime.now().strftime('%Y-%m-%d'))
+                    logger.debug('plugin:downloader: tracker downloaded: %s', ModelSetting.get('tracker_list'))
+
 
             # 편의를 위해 json 파일 생성
             from plugin import plugin_info
