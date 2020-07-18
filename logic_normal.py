@@ -94,14 +94,14 @@ class LogicNormal(object):
     def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type=''):
         try:
 
-            ######################## torrent_name # doesn't work
-            try:
-                data = {'uri_url': download_url}
-                raw_info = requests.get('/torrent_info/ajax/get_torrent_info').content.decode('utf8')
-                download_url += '&dn=' + raw_info.info.name
-                logger.debug("##########################\n######name:%s############\n#########", raw_info.info.name)
-            except:
-                pass
+            ######################## TODO: 다른 플러그인으로 api통신 어떻게하지
+            # try:
+            #     data = {'uri_url': download_url}
+            #     raw_info = requests.get('http://localhost:9999/torrent_info/ajax/get_torrent_info').content.decode('utf8')
+            #     download_url += '&dn=' + raw_info.info.name
+            #     logger.debug("##########################\n######name:%s############\n#########", raw_info.info.name)
+            # except:
+            #     pass
             ######################## torrent_tracker
             if ModelSetting.get_bool('use_tracker'):
                 tracker_list = []
