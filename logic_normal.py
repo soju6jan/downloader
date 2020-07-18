@@ -104,10 +104,10 @@ class LogicNormal(object):
                         url += '?apikey=%s' % SystemModelSetting.get('auth_apikey')
                     
                     raw_info = requests.get(url, data).json()
-                    if raw_info[u'success'] == ('false' or False):
-                        # logger.debug("log: %d", str(raw_info[u'log']))
-                    else:
+                    if raw_info[u'success']:
                         download_url += '&dn=' + raw_info[u'info'][u'name']
+                    # else:
+                    #     #logger.debug("log: %d", str(raw_info[u'log']))
                 except:
                     pass
             ######################## torrent_tracker

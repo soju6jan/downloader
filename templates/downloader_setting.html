@@ -22,9 +22,9 @@
       {{ macros.setting_input_int('status_interval', '상태 화면 갱신 주기', value=arg['status_interval'], min='1', placeholder='5', desc='second 단위') }}
       {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
       <!--added-->
-      {{ macros.setting_checkbox('use_download_name', '마그넷에 이름 추가', value=arg['use_download_name'], desc=['On : 마그넷 정보에 토렌트 이름을 추가합니다. 
-      이치로님의 torrent_info플러그인이 설치되어있어야 합니다.
-      마그넷 추가 시에 약간 시간이 걸립니다.']) }}
+      {{ macros.setting_checkbox('use_download_name', '마그넷에 이름 추가', value=arg['use_download_name'], desc=['On : 마그넷 정보에 토렌트 이름을 추가합니다.', 
+      '이치로님의 torrent_info플러그인이 설치되어있어야 합니다.',
+      '마그넷 추가 시에 약간 시간이 걸릴 수 있습니다.']) }}
       {{ macros.setting_checkbox('use_tracker', '트래커 자동 추가', value=arg['use_tracker'], desc=['On : 토렌트 추가 시 트래커를 자동으로 추가합니다.']) }}
       <div id="use_tracker_div" class="collapse">
         {{ macros.setting_input_textarea('tracker_list_manual', '트래커 목록', value=arg['tracker_list_manual'], desc=['기본 트래커를 포함해서 이 목록도 추가됩니다. 구분자 엔터']) }}
