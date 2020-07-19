@@ -122,6 +122,7 @@ def second_menu(sub, sub2):
             arg = ModelSetting.to_dict()
             arg['package_name'] = package_name
             arg['sub'] = sub
+            arg['tracker_list'] = ModelSetting.get('tracker_list').replace('\n', ', ')
             return render_template('%s_%s_%s.html' % (package_name, sub, sub2), arg=arg)
         elif sub2 == 'status':
             arg = {}

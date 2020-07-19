@@ -30,6 +30,7 @@ from framework.logger import get_logger
 from framework import app, db, scheduler, path_app_root
 from framework.job import Job
 from framework.util import Util
+from system.model import ModelSetting as SystemModelSetting
 from system.logic import SystemLogic
 
 # 패키지
@@ -93,11 +94,36 @@ class LogicNormal(object):
     @staticmethod
     def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type=''):
         try:
+
+            ######################## add name to magnet
+            if ModelSetting.get_bool('use_download_name'):
+                try:
+                    data = {'uri': download_url}
+                    url = '%s/torrent_info/api/json' % (SystemModelSetting.get('ddns'))
+                    if SystemModelSetting.get_bool('auth_use_apikey'):
+                        url += '?apikey=%s' % SystemModelSetting.get('auth_apikey')
+                    
+                    raw_info = requests.get(url, data).json()
+                    if raw_info[u'success']:
+                        download_url += '&dn=' + raw_info[u'info'][u'name']
+                    # else:
+                    #     #logger.debug("log: %d", str(raw_info[u'log']))
+                except:
+                    pass
+            ######################## torrent_tracker
+            if ModelSetting.get_bool('use_tracker'):
+                tracker_list = []
+                tracker_list += [tracker.strip() for tracker in ModelSetting.get('tracker_list').split('\n') if len(tracker.strip()) != 0]
+                tracker_list += [tracker.strip() for tracker in ModelSetting.get('tracker_list_manual').split('\n') if len(tracker.strip()) != 0]
+                for tracker in tracker_list:
+                    download_url += '&tr=' + tracker
+            ########################
+
             setting_list = db.session.query(ModelSetting).all()
             arg = Util.db_list_to_dict(setting_list)
             if default_torrent_program is None:
                 default_torrent_program = arg['default_torrent_program']
-           
+            
             if download_path is not None and download_path.strip() == '':
                 download_path = None
             if default_torrent_program == '0':
@@ -123,7 +149,6 @@ class LogicNormal(object):
             ret = {'ret':'error'}
         finally:
             return ret
-
 
     @staticmethod
     def program_init():

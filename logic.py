@@ -5,6 +5,8 @@ import os
 import traceback
 import time
 import threading
+import requests
+from datetime import datetime
 
 # third-party
 
@@ -30,6 +32,12 @@ class Logic(object):
         'status_interval' : '5',
         'download_completed_telegram_notify' : 'False',
 
+        'use_download_name': 'False',
+        'use_tracker': 'False',
+        'tracker_list': '',
+        'tracker_list_manual': '',
+        'tracker_last_update': '1970-01-01',
+
         'default_torrent_program' : '0',
 
         'transmission_url' : '',
@@ -39,15 +47,11 @@ class Logic(object):
         'transmission_default_path' : '',
         'transmission_normal_file_download' : 'False',
         'transmission_normal_file_download_path' : '',
-        'transmission_tracker': 'False',
-        'transmission_tracker_list': '',
         
         'downloadstation_url' : '',
         'downloadstation_id' : '',
         'downloadstation_pw' : '',
         'downloadstation_default_path' : '',
-        'downloadstation_tracker': 'False',
-        'downloadstation_tracker_list': '',
 
         'qbittorrnet_url' : '',
         'qbittorrnet_id' : '',
@@ -55,14 +59,10 @@ class Logic(object):
         'qbittorrnet_default_path' : '',
         'qbittorrnet_normal_file_download' : 'False',
         'qbittorrnet_normal_file_download_path' : '',
-        'qbittorrnet_tracker': 'False',
-        'qbittorrnet_tracker_list': '',
 
         #'aria2_url' : 'http://localhost/aria2/jsonrpc',
         'aria2_url' : '',
         'aria2_default_path' : os.path.join(path_data, 'aria2'),
-        'aria2_tracker': 'False',
-        'aria2_tracker_list': '',
     }
 
     @staticmethod
@@ -85,6 +85,17 @@ class Logic(object):
             LogicNormal.program_init()
             if ModelSetting.get_bool('auto_start'):
                 Logic.scheduler_start()
+
+            # tracker 자동 업데이트: 주기 1일
+            if (datetime.now() - datetime.strptime(ModelSetting.get('tracker_last_update'), '%Y-%m-%d')).days >= 1:
+                trackers_url_from = 'https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best_ip.txt'
+                new_trackers = requests.get(trackers_url_from).content.decode('utf8')
+                if len(new_trackers.strip()) != 0:
+                    ModelSetting.set('tracker_list', new_trackers)
+                    ModelSetting.set('tracker_last_update', datetime.now().strftime('%Y-%m-%d'))
+                    logger.debug('plugin:downloader: tracker downloaded: %s', ModelSetting.get('tracker_list'))
+
+
             # 편의를 위해 json 파일 생성
             from plugin import plugin_info
             Util.save_from_dict_to_json(plugin_info, os.path.join(os.path.dirname(__file__), 'info.json'))

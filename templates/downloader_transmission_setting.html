@@ -11,14 +11,6 @@
   {{ macros.setting_input_text('transmission_id', 'ID', value=arg['transmission_id'], col='3') }}
   {{ macros.setting_input_text_and_buttons('transmission_pw', '암호', [['transmission_test_btn', '접속 확인']], value=arg['transmission_pw'], col='4', type='password') }}
   {{ macros.setting_input_text('transmission_default_path', '다운로드 경로', value=arg['transmission_default_path'], desc=['기본 다운로드 경로. 생략시 트랜스미션의 기본 경로를 사용', '트랜스미션 설치 기기의 경로를 입력해야 합니다.']) }}
-  
-<!--added-->
-  {{ macros.setting_checkbox('transmission_tracker', '트래커 자동 추가', value=arg['transmission_tracker'], desc=['On : 토렌트 추가 시 트래커를 자동으로 추가합니다.']) }}
-  <div id="transmission_tracker_div" class="collapse">
-    {{ macros.setting_input_textarea('transmission_tracker_list', '트래커 목록', value=arg['transmission_tracker_list'], desc=['이 곳에 있는 트래커들이 자동으로 추가됩니다. 구분자 엔터']) }}
-  </div>
-<!--added-->
-
   {{ macros.setting_checkbox('transmission_normal_file_download', '일반 파일 다운로드', value=arg['transmission_normal_file_download'], desc=['On : 트랜스미션은 토렌트만 다운로드 할 수 있습니다.', ' 자막 등 일반 파일을 SJVA 대신 다운로드합니다.']) }}
   <div id="transmission_normal_file_download_div" class="collapse">
     {{ macros.setting_input_text('transmission_normal_file_download_path', '일반 파일 다운로드 경로', value=arg['transmission_normal_file_download_path'], desc=['SJVA 상의 경로입니다.']) }}
@@ -32,7 +24,6 @@ var package_name = "{{arg['package_name']}}";
 var sub = "{{arg['sub'] }}";
 
 $(document).ready(function(){
-  use_collapse("transmission_tracker");
   use_collapse("transmission_normal_file_download")
 });
 
@@ -67,10 +58,6 @@ $("body").on('click', '#transmission_test_btn', function(e){
       }
     }
   });
-});
-
-$('#transmission_tracker').change(function () {
-  use_collapse('transmission_tracker');
 });
 
 $('#transmission_normal_file_download').change(function() {
