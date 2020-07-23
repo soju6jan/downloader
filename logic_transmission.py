@@ -153,8 +153,22 @@ class LogicTransmission(object):
         logger.debug('TTTTTTTTTTTTTTTTTTT')
         logger.debug(url)
         logger.debug(path)
+        ret = {}
         try:
-            ret = {}
+            if not url.startswith('magnet') and not url.endswith('.torrent'):
+                if ModelSetting.get_bool('transmission_normal_file_download'):
+                    th = threading.Thread(target=LogicTransmission.download_thread_function, args=(url, ModelSetting.get('transmission_normal_file_download_path')))
+                    th.start()
+                    ret['ret'] = 'success2'
+                else:
+                    ret['ret'] = 'fail'
+                return ret
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+        try:
+            
             if LogicTransmission.program is None:
                 LogicTransmission.program_init()
             if LogicTransmission.program is None:
@@ -180,7 +194,9 @@ class LogicTransmission(object):
         logger.debug(ret)
         ret['download_url'] = url
         ret['download_path'] = path if path is not None else ''
-        
+        return ret
+        # 2020-07-23 자막파일일때 에러리턴 안함.
+        """
         try:
             if ret['ret'] == 'error' and ret['error'].find('invalid or corrupt torrent file') != -1:
                 if ModelSetting.get_bool('transmission_normal_file_download'):
@@ -193,7 +209,8 @@ class LogicTransmission(object):
             logger.error(traceback.format_exc())
         finally:
             return ret
-    
+        """
+
     @staticmethod
     def get_filename_from_cd(cd):
         """
