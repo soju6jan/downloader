@@ -162,6 +162,7 @@ class LogicTransmission(object):
                     ret['ret'] = 'success2'
                 else:
                     ret['ret'] = 'fail'
+                logger.debug('normal file downerload:%s', ret)
                 return ret
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -191,9 +192,9 @@ class LogicTransmission(object):
             logger.error(traceback.format_exc())
             ret['ret'] = 'error'
             ret['error'] = str(e)
-        logger.debug(ret)
         ret['download_url'] = url
         ret['download_path'] = path if path is not None else ''
+        logger.debug(ret)
         return ret
         # 2020-07-23 자막파일일때 에러리턴 안함.
         """
