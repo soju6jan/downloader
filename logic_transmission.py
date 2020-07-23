@@ -150,6 +150,9 @@ class LogicTransmission(object):
     
     @staticmethod
     def add_download(url, path):
+        logger.debug('TTTTTTTTTTTTTTTTTTT')
+        logger.debug(url)
+        logger.debug(path)
         try:
             ret = {}
             if LogicTransmission.program is None:
@@ -174,6 +177,7 @@ class LogicTransmission(object):
             logger.error(traceback.format_exc())
             ret['ret'] = 'error'
             ret['error'] = str(e)
+        logger.debug(ret)
         ret['download_url'] = url
         ret['download_path'] = path if path is not None else ''
         
