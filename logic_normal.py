@@ -97,19 +97,20 @@ class LogicNormal(object):
 
             ######################## add name to magnet
             if ModelSetting.get_bool('use_download_name'):
-                try:
-                    data = {'uri': download_url}
-                    url = '%s/torrent_info/api/json' % (SystemModelSetting.get('ddns'))
-                    if SystemModelSetting.get_bool('auth_use_apikey'):
-                        url += '?apikey=%s' % SystemModelSetting.get('auth_apikey')
-                    
-                    raw_info = requests.get(url, data).json()
-                    if raw_info[u'success']:
-                        download_url += '&dn=' + raw_info[u'info'][u'name']
-                    # else:
-                    #     #logger.debug("log: %d", str(raw_info[u'log']))
-                except:
-                    pass
+                if "&dn=" not in download_url:
+                    try:
+                        data = {'uri': download_url}
+                        url = '%s/torrent_info/api/json' % (SystemModelSetting.get('ddns'))
+                        if SystemModelSetting.get_bool('auth_use_apikey'):
+                            url += '?apikey=%s' % SystemModelSetting.get('auth_apikey')
+                        
+                        raw_info = requests.get(url, data).json()
+                        if raw_info[u'success']:
+                            download_url += '&dn=' + raw_info[u'info'][u'name']
+                        # else:
+                        #     #logger.debug("log: %d", str(raw_info[u'log']))
+                    except:
+                        pass
             ######################## torrent_tracker
             if ModelSetting.get_bool('use_tracker'):
                 tracker_list = []
