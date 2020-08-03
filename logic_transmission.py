@@ -361,7 +361,7 @@ class LogicTransmission(object):
                     if downloader_item.title != item['title']:
                         downloader_item.title = item['title']
                         flag_update = True
-                    if item['status'] == 'seeding' or item['status'] == 'finished':
+                    if item['status'] == 'seeding' or item['status'] == 'finished' or item['percentDone'] == 1:
                         if downloader_item.status != "completed":
                             downloader_item.status = "completed"
                             downloader_item.completed_time = datetime.now()

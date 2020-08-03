@@ -142,7 +142,7 @@ class ModelDownloaderItem(db.Model):
     def __init__(self, request_type, request_sub_type, download_url, download_path, torrent_program):
         self.request_type = request_type #web, rss, tv, movie
         self.request_sub_type = request_sub_type
-        self.download_url = download_url
+        self.download_url = download_url.split('&')[0]
         self.download_path = download_path
         self.torrent_program = torrent_program
         self.program_id = ''
