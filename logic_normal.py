@@ -161,6 +161,7 @@ class LogicNormal(object):
 
     @staticmethod
     def get_download_path(download_path, server_id):
+        logger.debug('download_path:%s server_id:%s', download_path, server_id)
         try:
             if server_id is not None and ModelSetting.get_bool('use_share_upload'):
                 download_path = os.path.join(download_path, server_id)
@@ -176,6 +177,7 @@ class LogicNormal(object):
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
         finally:
+            logger.debug('download_path2:%s server_id:%s', download_path, server_id)
             return download_path
 
     @staticmethod
