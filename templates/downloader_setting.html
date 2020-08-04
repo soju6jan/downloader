@@ -52,10 +52,14 @@ var current_data = null;
 
 $(document).ready(function(){
   use_collapse('use_tracker');
+  use_collapse('use_share_upload');
 });
 
 $('#use_tracker').change(function () {
   use_collapse('use_tracker');
+});
+$('#use_share_upload').change(function () {
+  use_collapse('use_share_upload');
 });
 </script>    
 {% endblock %}
