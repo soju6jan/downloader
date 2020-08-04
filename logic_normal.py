@@ -164,7 +164,7 @@ class LogicNormal(object):
         logger.debug('download_path:%s server_id:%s', download_path, server_id)
         try:
             if server_id is not None and ModelSetting.get_bool('use_share_upload'):
-                download_path = os.path.join(download_path, '%s_%s' % (server_id, download_url[20:60].lower()))
+                download_path = os.path.join(download_path, '%s_%s_%s' % (server_id, download_url[20:60].lower(), SystemModelSetting.get('sjva_me_user_id')))
                 rule = ModelSetting.get('use_share_upload_make_dir_rule')
                 if rule == '':
                     sjva_path = download_path
