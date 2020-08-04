@@ -31,6 +31,11 @@
         {{ macros.info_text("", '', value='아래 기본 트래커를 자동으로 추가합니다. (매일 갱신)', desc=arg['tracker_list']) }}
       </div>
       <!--added-->
+      {{ macros.m_hr() }}
+      {{ macros.setting_checkbox('use_share_upload', '공유 제공용 다운로드', value=arg['use_share_upload'], desc=['On : 봇 다운로드시 공유 제공용 다운로드입니다. 토렌트 정보에 있는 server id 값으로 폴더를 생성하고 그 안에 데이터를 받습니다.']) }}
+      <div id="use_share_upload_div" class="collapse">
+        {{ macros.setting_input_text('use_share_upload_make_dir_rule', '다운로드 폴더 변환 룰', value=arg['use_share_upload_make_dir_rule'], desc=['토렌트 프로그램 입장에서의 다운로드 폴더|앞 폴더의 SJVA상의 이름', '변환 후 server id 폴더를 생성', '동일할 경우 생략']) }}
+      </div>
     {{ macros.m_tab_content_end() }}
 
     {{ macros.m_tab_content_start('etc', false) }}

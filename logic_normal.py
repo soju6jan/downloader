@@ -91,8 +91,9 @@ class LogicNormal(object):
             ret = {'ret':'error'}
 
     
+    # 2020-08-04
     @staticmethod
-    def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type=''):
+    def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type='', server_id=None):
         try:
 
             ######################## add name to magnet
@@ -125,22 +126,29 @@ class LogicNormal(object):
             if default_torrent_program is None:
                 default_torrent_program = arg['default_torrent_program']
             
+
             if download_path is not None and download_path.strip() == '':
                 download_path = None
             if default_torrent_program == '0':
                 if download_path is None:
                     download_path = arg['transmission_default_path']
+                download_path = LogicNormal.get_download_path(download_path, server_id)
                 ret = LogicTransmission.add_download(download_url, download_path)
             elif default_torrent_program == '1':
                 if download_path is None:
                     download_path = arg['downloadstation_default_path']
+                download_path = LogicNormal.get_download_path(download_path, server_id)
                 ret = LogicDownloadStation.add_download(download_url, download_path)
             elif default_torrent_program == '2':
                 if download_path is None:
                     download_path = arg['qbittorrnet_default_path']
+                download_path = LogicNormal.get_download_path(download_path, server_id)
                 ret = LogicQbittorrent.add_download(download_url, download_path)
             elif default_torrent_program == '3':
-                ret = LogicAria2.add_download(download_url, download_path if download_path is not None else arg['aria2_default_path'])
+                if download_path is None:
+                    download_path = arg['aria2_default_path']
+                download_path = LogicNormal.get_download_path(download_path, server_id)
+                ret = LogicAria2.add_download(download_url, download_path)
 
             ret['default_torrent_program'] = default_torrent_program
             ret['downloader_item_id'] = ModelDownloaderItem.save(ret, request_type, request_sub_type)
@@ -150,6 +158,25 @@ class LogicNormal(object):
             ret = {'ret':'error'}
         finally:
             return ret
+
+    @staticmethod
+    def get_download_path(download_path, server_id):
+        try:
+            if server_id is not None and ModelSetting.get_bool('use_share_upload'):
+                download_path = os.path.join(download_path, server_id)
+                rule = ModelSetting.get('use_share_upload_make_dir_rule')
+                if rule == '':
+                    sjva_path = download_path
+                else:
+                    rule = rule.split('|')
+                    sjva_path = download_path.replace(rule[0], rule[1])
+                if os.path.exists(os.path.dirname(sjva_path)):
+                    os.makedirs(sjva_path)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+        finally:
+            return download_path
 
     @staticmethod
     def program_init():

@@ -63,6 +63,9 @@ class Logic(object):
         #'aria2_url' : 'http://localhost/aria2/jsonrpc',
         'aria2_url' : '',
         'aria2_default_path' : os.path.join(path_data, 'aria2'),
+
+        'use_share_upload' : 'False',
+        'use_share_upload_make_dir_rule' : '',
     }
 
     @staticmethod
