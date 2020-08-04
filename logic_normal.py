@@ -132,22 +132,22 @@ class LogicNormal(object):
             if default_torrent_program == '0':
                 if download_path is None:
                     download_path = arg['transmission_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
                 ret = LogicTransmission.add_download(download_url, download_path)
             elif default_torrent_program == '1':
                 if download_path is None:
                     download_path = arg['downloadstation_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
                 ret = LogicDownloadStation.add_download(download_url, download_path)
             elif default_torrent_program == '2':
                 if download_path is None:
                     download_path = arg['qbittorrnet_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
                 ret = LogicQbittorrent.add_download(download_url, download_path)
             elif default_torrent_program == '3':
                 if download_path is None:
                     download_path = arg['aria2_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
                 ret = LogicAria2.add_download(download_url, download_path)
 
             ret['default_torrent_program'] = default_torrent_program
@@ -160,11 +160,11 @@ class LogicNormal(object):
             return ret
 
     @staticmethod
-    def get_download_path(download_path, server_id):
+    def get_download_path(download_path, server_id, download_url):
         logger.debug('download_path:%s server_id:%s', download_path, server_id)
         try:
             if server_id is not None and ModelSetting.get_bool('use_share_upload'):
-                download_path = os.path.join(download_path, str(server_id))
+                download_path = os.path.join(download_path, '%s_%s' % (server_id, download_url[20:60].lower()))
                 rule = ModelSetting.get('use_share_upload_make_dir_rule')
                 if rule == '':
                     sjva_path = download_path
