@@ -200,7 +200,7 @@ class Logic(object):
     # 타 플러그인
 
     @staticmethod
-    def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type='', server_id=server_id):
+    def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type='', server_id=None):
         return LogicNormal.add_download2(download_url, default_torrent_program, download_path, request_type=request_type, request_sub_type=request_sub_type,server_id=server_id)
     
     @staticmethod
