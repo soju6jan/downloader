@@ -246,4 +246,20 @@ class LogicNormal(object):
             logger.error(traceback.format_exc())
     
 
-    
+    @staticmethod
+    def process_telegram_data(data):
+        flag = False
+        try:
+            logger.debug(data)
+            from bot_downloader_ktv.model import ModelBotDownloaderKtvItem
+            flag = ModelBotDownloaderKtvItem.receive_share_data(data)
+            
+            if not flag:
+                from bot_downloader_movie.model import ModelMovieItem
+                flag = ModelMovieItem.receive_share_data(data)
+            if not flag:
+                from bot_downloader_av.model import ModelItem
+                flag = ModelItem.receive_share_data(data)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
