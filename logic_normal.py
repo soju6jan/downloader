@@ -228,8 +228,6 @@ class LogicNormal(object):
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
   
-    
-
   
 
     @staticmethod
@@ -248,44 +246,4 @@ class LogicNormal(object):
             logger.error(traceback.format_exc())
     
 
-
-
-
     
-   
-
-
-
-    @staticmethod
-    def filelist(req):
-        try:
-            ret = {}
-            page = 1
-            page_size = int(db.session.query(ModelSetting).filter_by(key='web_page_size').first().value)
-            job_id = ''
-            search = ''
-            if 'page' in req.form:
-                page = int(req.form['page'])
-            if 'search_word' in req.form:
-                search = req.form['search_word']
-            
-            query = db.session.query(ModelDownloaderItem)
-            if search != '':
-                query = query.filter(ModelDownloaderItem.title.like('%'+search+'%'))
-            request_type = req.form['request_type']
-            if request_type != 'all':
-                query = query.filter(ModelDownloaderItem.request_type == request_type)
-            count = query.count()
-            query = (query.order_by(desc(ModelDownloaderItem.id))
-                        .limit(page_size)
-                        .offset((page-1)*page_size)
-                )
-            logger.debug('ModelDownloaderItem count:%s', count)
-            lists = query.all()
-            ret['list'] = [item.as_dict() for item in lists]
-            ret['paging'] = Util.get_paging_info(count, page, page_size)
-            return ret
-        except Exception, e:
-            logger.debug('Exception:%s', e)
-            logger.debug(traceback.format_exc())
-
