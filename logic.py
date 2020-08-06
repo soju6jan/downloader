@@ -66,6 +66,8 @@ class Logic(object):
 
         'use_share_upload' : 'False',
         'use_share_upload_make_dir_rule' : '',
+
+        'attach_upload_path' : '',
     }
 
     @staticmethod
@@ -199,7 +201,7 @@ class Logic(object):
 
     # 타 플러그인
 
-    @staticmethod  
+    @staticmethod
     def add_download2(download_url, default_torrent_program, download_path, request_type='web', request_sub_type='', server_id=None):
         return LogicNormal.add_download2(download_url, default_torrent_program, download_path, request_type=request_type, request_sub_type=request_sub_type,server_id=server_id)
     
@@ -220,3 +222,5 @@ class Logic(object):
     @staticmethod
     def is_available_normal_download():
         return True
+
+    

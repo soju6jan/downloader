@@ -43,6 +43,15 @@ from .logic_aria2 import LogicAria2
 
 import plugin
 
+#file move
+import shutil
+
+#torrent to magnet
+import sys
+import urllib
+import bencode
+import hashlib
+import base64
 
 #########################################################
 
@@ -204,6 +213,8 @@ class LogicNormal(object):
             LogicQbittorrent.scheduler_function()
             LogicAria2.scheduler_function()
             
+            #scheduler from seed folder
+            LogicNormal.search_from_torrent_file()
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -229,6 +240,8 @@ class LogicNormal(object):
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
   
+    
+
   
 
     @staticmethod
@@ -245,22 +258,106 @@ class LogicNormal(object):
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
-    
+
 
     @staticmethod
-    def process_telegram_data(data):
-        flag = False
+    def filelist(req):
         try:
-            logger.debug(data)
-            from bot_downloader_ktv.model import ModelBotDownloaderKtvItem
-            flag = ModelBotDownloaderKtvItem.receive_share_data(data)
+            ret = {}
+            page = 1
+            page_size = int(db.session.query(ModelSetting).filter_by(key='web_page_size').first().value)
+            job_id = ''
+            search = ''
+            if 'page' in req.form:
+                page = int(req.form['page'])
+            if 'search_word' in req.form:
+                search = req.form['search_word']
             
-            if not flag:
-                from bot_downloader_movie.model import ModelMovieItem
-                flag = ModelMovieItem.receive_share_data(data)
-            if not flag:
-                from bot_downloader_av.model import ModelItem
-                flag = ModelItem.receive_share_data(data)
+            query = db.session.query(ModelDownloaderItem)
+            if search != '':
+                query = query.filter(ModelDownloaderItem.title.like('%'+search+'%'))
+            request_type = req.form['request_type']
+            if request_type != 'all':
+                query = query.filter(ModelDownloaderItem.request_type == request_type)
+            count = query.count()
+            query = (query.order_by(desc(ModelDownloaderItem.id))
+                        .limit(page_size)
+                        .offset((page-1)*page_size)
+                )
+            logger.debug('ModelDownloaderItem count:%s', count)
+            lists = query.all()
+            ret['list'] = [item.as_dict() for item in lists]
+            ret['paging'] = Util.get_paging_info(count, page, page_size)
+            return ret
+        except Exception, e:
+            logger.debug('Exception:%s', e)
+            logger.debug(traceback.format_exc())
+
+    
+    @staticmethod
+    def upload_torrent_file(request):
+        logger.debug("upload_torrent_file")
+        try:
+            logger.debug("method : %s", request.method)
+            files = request.files
+            attach_upload_path = ModelSetting.get('attach_upload_path')
+            #업로드 폴더 없는 경우 생성
+            if not os.path.isdir(attach_upload_path): 
+                os.makedirs(attach_upload_path)
+            
+            #전달받은 path 경로에 / 없는 경우 예외처리
+            if attach_upload_path.rfind("/")+1 != len(attach_upload_path):
+                attach_upload_path = attach_upload_path+'/'
+            
+            for f in files.to_dict(flat=False)['attach_files[]']:
+                logger.debug("filename : %s", f.filename)
+                f.save(attach_upload_path+f.filename)
+            ret = {'ret':'success'}
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
+            ret = {'ret':'error'}
+        finally:
+            return ret
+
+    @staticmethod
+    def search_from_torrent_file():
+        logger.debug("start add .torrent file")
+        attach_upload_path = ModelSetting.get('attach_upload_path')
+        if attach_upload_path.rfind("/")+1 != len(attach_upload_path):
+            attach_upload_path = attach_upload_path+'/'
+        
+        fileList = os.listdir(attach_upload_path)
+        for file in fileList:
+            if file.upper().find(".TORRENT") > -1:
+                magnet = LogicNormal.make_magnet_from_file(attach_upload_path+file)
+                logger.debug("magnet : %s", magnet)
+                LogicNormal.add_download2(magnet, ModelSetting.get('default_torrent_program'), None, request_type='.torrent', request_sub_type='.torrent')
+                
+                #완료 된 경우 파일명 변환
+                after_name = file.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
+                logger.debug("before name : %s, after name : %s", file, after_name)
+                #파일 이동
+                shutil.move(attach_upload_path+file, attach_upload_path+after_name)
+
+        logger.debug("finish add .torrent file")
+
+    @staticmethod
+    def make_magnet_from_file(file):
+        torrent = open(file, 'r').read()
+        metadata = bencode.bdecode(torrent)
+
+        hashcontents = bencode.bencode(metadata['info'])
+        digest = hashlib.sha1(hashcontents).digest()
+        b32hash = base64.b32encode(digest)
+
+        params = {'xt': 'urn:btih:%s' % b32hash, 'dn': metadata['info']['name'], 'tr': metadata['announce'], 'xl': metadata['info']['length']}
+
+        announcestr = ''
+        for announce in metadata['announce-list']:
+            announcestr += '&' + urllib.urlencode({'tr':announce[0]})
+
+        paramstr = urllib.urlencode(params) + announcestr
+        magneturi = 'magnet:?%s' % paramstr
+        magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
+        return magneturi

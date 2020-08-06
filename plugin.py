@@ -79,7 +79,7 @@ def plugin_unload():
     Logic.plugin_unload()
 
 def process_telegram_data(data):
-    LogicNormal.process_telegram_data(data)
+    pass
 
 #########################################################
 # WEB Menu 
@@ -192,7 +192,11 @@ def ajax(sub):
         elif sub == 'web_list':
             ret = ModelDownloaderItem.web_list(request)
             return jsonify(ret)
- 
+        
+        #토렌트 파일 업로드
+        elif sub == 'upload_torrent_file':
+            ret = LogicNormal.upload_torrent_file(request)
+            return jsonify(ret)
     except Exception as e: 
         logger.error('Exception:%s', e)
         logger.error(traceback.format_exc())  
