@@ -102,7 +102,12 @@ $("#attach_files").change(function(e){
         var fileExt = fileName.substring(fileName.lastIndexOf(".")+1).toUpperCase();
 
         if(fileExt.toUpperCase() != "TORRENT"){
-            continue;
+            $.notify('<strong>업로드 불가능한 확장자가 있습니다.torrent파일만 가능합니다.(warning)</strong>', {
+              type: 'warning'
+            });
+            $("#attach_files").val("");
+            fileListHTML = "";
+            break;
         }
         fileListHTML += fileList[i].name+"<br>";
     }
@@ -115,26 +120,37 @@ $("#upload_torrent_btn").click(function (e){
     $("#setting").attr("enctype", "multipart/form-data");
     //var formData = get_formdata('#setting');
     var formData = new FormData(document.getElementById("setting"));
-
-    $.ajax({
-      url: '/' + package_name + '/ajax/upload_torrent_file',
-      type: "POST", 
-      cache: false,
-      data: formData,
-      contentType: false,	//파일전송시 필요
-			processData: false,	//파일전송시 필요
-      dataType: "json",
-      success: function (data) {
-        $.notify('<strong>파일을 업로드하였습니다.. (success)</strong>', {
-          type: 'success'
-        });
-      },
-      error : function (data){
-        $.notify('<strong>파일업로드 실패하였습니다.. (warning)</strong>', {
-          type: 'warning'
-        });
-      }
-    });
+    
+    var fileList = document.getElementById("attach_files").files;
+    var fileCnt = fileList.length;
+    if(fileCnt > 0){
+      $.ajax({
+        url: '/' + package_name + '/ajax/upload_torrent_file',
+        type: "POST", 
+        cache: false,
+        data: formData,
+        contentType: false,	//파일전송시 필요
+        processData: false,	//파일전송시 필요
+        dataType: "json",
+        success: function (data) {
+          $.notify('<strong>파일을 업로드하였습니다.(success)</strong>', {
+            type: 'success'
+          });
+          setTimeout(() => {
+            location.reload()
+          }, 1000);
+        },
+        error : function (data){
+          $.notify('<strong>파일업로드 실패하였습니다.(warning)</strong>', {
+            type: 'warning'
+          });
+        }
+      });
+    }else{
+      $.notify('<strong>업로드할 파일이 존재하지 않습니다.(warning)</strong>', {
+            type: 'warning'
+          });
+    }
 });
 </script>    
 {% endblock %}
