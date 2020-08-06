@@ -79,7 +79,8 @@ def plugin_unload():
     Logic.plugin_unload()
 
 def process_telegram_data(data):
-    pass
+    LogicNormal.process_telegram_data(data)
+
 
 #########################################################
 # WEB Menu 
