@@ -218,7 +218,7 @@ class LogicNormal(object):
             LogicAria2.scheduler_function()
             
             #scheduler from seed folder
-            LogicNormal.search_from_torrent_file()
+            #LogicNormal.search_from_torrent_file()
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
