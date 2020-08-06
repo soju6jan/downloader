@@ -172,7 +172,8 @@ class LogicNormal(object):
                     rule = rule.split('|')
                     sjva_path = download_path.replace(rule[0], rule[1])
                 if os.path.exists(os.path.dirname(sjva_path)):
-                    os.makedirs(sjva_path)
+                    if not os.path.exits(sjva_path):
+                        os.makedirs(sjva_path)
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())

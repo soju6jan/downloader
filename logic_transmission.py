@@ -150,9 +150,6 @@ class LogicTransmission(object):
     
     @staticmethod
     def add_download(url, path):
-        logger.debug('TTTTTTTTTTTTTTTTTTT')
-        logger.debug(url)
-        logger.debug(path)
         ret = {}
         try:
             if not url.startswith('magnet') and not url.endswith('.torrent'):
