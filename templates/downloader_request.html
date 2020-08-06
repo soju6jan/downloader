@@ -125,10 +125,14 @@ $("#upload_torrent_btn").click(function (e){
 			processData: false,	//파일전송시 필요
       dataType: "json",
       success: function (data) {
-        alert("파일 업로드..");
+        $.notify('<strong>파일을 업로드하였습니다.. (success)</strong>', {
+          type: 'success'
+        });
       },
       error : function (data){
-        alert("토렌트 파일 업로드 실패");
+        $.notify('<strong>파일업로드 실패하였습니다.. (warning)</strong>', {
+          type: 'warning'
+        });
       }
     });
 });
