@@ -3,31 +3,26 @@
 
 <div>
   <form id='download_form' name='download_form'>
-  {{ macros.setting_input_text('download_url', '다운로드', placeholder='', desc=['Magnet or Torrent File URL']) }}
+  <div class="row" style="padding-top: 10px; padding-bottom:10px; align-items: center;">
+    <div class="col-sm-3 set-left">
+      <strong>다운로드</strong>
+    </div>
+    <div class="col-sm-9">
+        <div class="input-group col-sm-9">
+            <input id="download_url" name="download_url" type="text" class="form-control form-control-sm" value="">
+            <button id="add_torrent_file" class="btn btn-sm btn-outline-success">토렌트 파일 선택</button>
+            <input type="file" id="attach_files" name="attach_files[]" value="" style="display:none;" multiple="multiple"/>
+        </div>
+        <div style="padding-left:20px; padding-top:5px;">
+        <em>Magnet or Torrent File URL<br></em>
+    </div>
+    </div>
+  </div>
   {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
   {{ macros.setting_input_text('download_path', '다운로드 경로', value=arg['download_path'], desc=['다운로드 경로. 생략시 토렌트 프로그램의 기본 경로를 사용합니다.']) }}
   {{ macros.setting_button([['download_start', '다운로드']]) }}
   </form>
   {{ macros.m_hr() }}
-  
-  <form id='setting' name='setting'>
-  {{ macros.setting_input_text('attach_upload_path', '감시폴더/업로드 경로', value=arg['attach_upload_path'], desc=['토렌트 파일 업로드 경로/주기적으로 체크할 폴더 경로 [기본설정의 스케쥴링 시간마다 검사]']) }}
-  {{ macros.setting_button([['global_setting_save_btn', '저장']]) }}
-  <div class="row" style="padding-top: 10px; padding-bottom:10px; align-items: center;">
-    <div class="col-sm-3 set-left"></div>
-    <div class="col-sm-9">
-        <div class="input-group col-sm-9">
-            <button id="add_torrent_file" class="btn btn-sm btn-outline-success">토렌트 파일 선택</button>
-            <input type="file" id="attach_files" name="attach_files[]" value="" style="display:none;" multiple="multiple"/>
-            <button id="upload_torrent_btn" class="btn btn-sm btn-outline-success">업로드</button>
-        </div>
-        <div style="padding-left:20px; padding-top:5px;" id="attach_file_list">
-            <em></em>
-        </div>
-    </div>
-  </div>
-  {{ macros.setting_button([['global_one_execute_btn', '1회 실행']], left='1회 실행' ) }}
-  </form>
 </div> <!--전체-->
 <script type="text/javascript">
 var package_name = "{{arg['package_name']}}";
@@ -85,7 +80,7 @@ $("body").on('click', '#download_start', function(e){
   });
 });
 
-//토렌트 파일 선택 버튼
+//파일업로드
 $("body").on("click", "#add_torrent_file", function(e){
     e.preventDefault();
     $("#attach_files").click();
@@ -93,64 +88,55 @@ $("body").on("click", "#add_torrent_file", function(e){
 
 $("#attach_files").change(function(e){
     e.preventDefault();
-    var fileListHTML = "";
     var fileList = document.getElementById("attach_files").files;
     var fileCnt = fileList.length;
+    var uploadBool = true;
     
     for(var i=0; i<fileCnt; i++){
         var fileName = fileList[i].name;
         var fileExt = fileName.substring(fileName.lastIndexOf(".")+1).toUpperCase();
 
         if(fileExt.toUpperCase() != "TORRENT"){
-            $.notify('<strong>업로드 불가능한 확장자가 있습니다.torrent파일만 가능합니다.(warning)</strong>', {
+            $.notify('<strong>업로드 불가능한 확장자가 있습니다.<br>torrent파일만 가능합니다.</strong>', {
               type: 'warning'
             });
             $("#attach_files").val("");
-            fileListHTML = "";
+            uploadBool = false;
             break;
         }
-        fileListHTML += fileList[i].name+"<br>";
     }
-    fileListHTML += "</em>";
-    $("#attach_file_list").html(fileListHTML);
+    //upload 가능(모두 torrent 파일)
+    if(fileCnt > 0 && uploadBool){
+        $("#download_form").attr("enctype", "multipart/form-data");
+        var formData = new FormData(document.getElementById("download_form"));
+        $.ajax({
+            url: '/' + package_name + '/ajax/upload_torrent_file',
+            type: "POST", 
+            cache: false,
+            data: formData,
+            contentType: false,	//파일전송시 필요
+            processData: false,	//파일전송시 필요
+            dataType: "json",
+            success: function (data) {
+            $.notify('<strong>파일을 업로드하였습니다.</strong>', {
+                type: 'success'
+            });
+            setTimeout(() => {
+                location.reload()
+            }, 1000);
+            },
+            error : function (data){
+            $.notify('<strong>파일업로드 실패하였습니다.</strong>', {
+                type: 'warning'
+            });
+            }
+        });
+    }else{
+    $.notify('<strong>업로드할 파일이 존재하지 않습니다.</strong>', {
+            type: 'warning'
+        });
+    }
 });
 
-$("#upload_torrent_btn").click(function (e){
-    e.preventDefault();
-    $("#setting").attr("enctype", "multipart/form-data");
-    //var formData = get_formdata('#setting');
-    var formData = new FormData(document.getElementById("setting"));
-    
-    var fileList = document.getElementById("attach_files").files;
-    var fileCnt = fileList.length;
-    if(fileCnt > 0){
-      $.ajax({
-        url: '/' + package_name + '/ajax/upload_torrent_file',
-        type: "POST", 
-        cache: false,
-        data: formData,
-        contentType: false,	//파일전송시 필요
-        processData: false,	//파일전송시 필요
-        dataType: "json",
-        success: function (data) {
-          $.notify('<strong>파일을 업로드하였습니다.(success)</strong>', {
-            type: 'success'
-          });
-          setTimeout(() => {
-            location.reload()
-          }, 1000);
-        },
-        error : function (data){
-          $.notify('<strong>파일업로드 실패하였습니다.(warning)</strong>', {
-            type: 'warning'
-          });
-        }
-      });
-    }else{
-      $.notify('<strong>업로드할 파일이 존재하지 않습니다.(warning)</strong>', {
-            type: 'warning'
-          });
-    }
-});
 </script>    
 {% endblock %}

@@ -49,7 +49,11 @@ import shutil
 #torrent to magnet
 import sys
 import urllib
-import bencode
+try:
+    import bencode
+except:
+    os.system("pip install bencode")
+    import bencode
 import hashlib
 import base64
 
@@ -181,7 +185,8 @@ class LogicNormal(object):
                     rule = rule.split('|')
                     sjva_path = download_path.replace(rule[0], rule[1])
                 if os.path.exists(os.path.dirname(sjva_path)):
-                    os.makedirs(sjva_path)
+                    if not os.path.exits(sjva_path):
+                        os.makedirs(sjva_path)
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -260,57 +265,41 @@ class LogicNormal(object):
 
 
     @staticmethod
-    def filelist(req):
-        try:
-            ret = {}
-            page = 1
-            page_size = int(db.session.query(ModelSetting).filter_by(key='web_page_size').first().value)
-            job_id = ''
-            search = ''
-            if 'page' in req.form:
-                page = int(req.form['page'])
-            if 'search_word' in req.form:
-                search = req.form['search_word']
-            
-            query = db.session.query(ModelDownloaderItem)
-            if search != '':
-                query = query.filter(ModelDownloaderItem.title.like('%'+search+'%'))
-            request_type = req.form['request_type']
-            if request_type != 'all':
-                query = query.filter(ModelDownloaderItem.request_type == request_type)
-            count = query.count()
-            query = (query.order_by(desc(ModelDownloaderItem.id))
-                        .limit(page_size)
-                        .offset((page-1)*page_size)
-                )
-            logger.debug('ModelDownloaderItem count:%s', count)
-            lists = query.all()
-            ret['list'] = [item.as_dict() for item in lists]
-            ret['paging'] = Util.get_paging_info(count, page, page_size)
-            return ret
-        except Exception, e:
-            logger.debug('Exception:%s', e)
-            logger.debug(traceback.format_exc())
-
-    
-    @staticmethod
     def upload_torrent_file(request):
+        #다운로드요청으로 넘어온 파일들
         logger.debug("upload_torrent_file")
         try:
-            logger.debug("method : %s", request.method)
             files = request.files
-            attach_upload_path = ModelSetting.get('attach_upload_path')
-            #업로드 폴더 없는 경우 생성
-            if not os.path.isdir(attach_upload_path): 
-                os.makedirs(attach_upload_path)
-            
-            #전달받은 path 경로에 / 없는 경우 예외처리
-            if attach_upload_path.rfind("/")+1 != len(attach_upload_path):
-                attach_upload_path = attach_upload_path+'/'
-            
+
+            #업로드 파일 임시폴더 저장
+            tmp_file_list = []
+            from framework import path_data
+            tmp_file_path = os.path.join(path_data, 'tmp')
+            #logger.debug("tmp_file_path : %s", tmp_file_path)
             for f in files.to_dict(flat=False)['attach_files[]']:
-                logger.debug("filename : %s", f.filename)
-                f.save(attach_upload_path+f.filename)
+                tmp_upload_path = os.path.join(tmp_file_path, f.filename)
+                logger.debug("tmp_upload_path : %s", tmp_upload_path)
+                f.save(tmp_upload_path)
+                #토렌트 추가 후 삭제할 경로 저장
+                tmp_file_list.append(tmp_upload_path)
+
+            #다운로드 요청에 필요한 값
+            default_torrent_program = request.form['default_torrent_program'] if 'default_torrent_program' in request.form else None
+            download_path = request.form['download_path'] if 'download_path'  in request.form else None
+
+            #다운로드 요청
+            for file in tmp_file_list:
+                if file.upper().find(".TORRENT") > -1:
+                    magnet = LogicNormal.make_magnet_from_file(file)
+                    logger.debug("upload_torrent_file() magnet : %s", magnet)
+                    LogicNormal.add_download2(magnet, default_torrent_program, download_path, request_type='download_request', request_sub_type='download_request')
+            
+            #임시폴더에서 .torrent 파일 삭제
+            logger.debug("delete torrent file from tmp folder")
+            for file in tmp_file_list:
+                logger.debug("tmp_file_path : %s", file)
+                os.remove(file)
+
             ret = {'ret':'success'}
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -318,28 +307,36 @@ class LogicNormal(object):
             ret = {'ret':'error'}
         finally:
             return ret
-
+    
     @staticmethod
     def search_from_torrent_file():
-        logger.debug("start add .torrent file")
-        attach_upload_path = ModelSetting.get('attach_upload_path')
-        if attach_upload_path.rfind("/")+1 != len(attach_upload_path):
-            attach_upload_path = attach_upload_path+'/'
+        #감시폴더 조회
+        logger.debug("start watch folder searching...")
+        watch_upload_path = ModelSetting.get('watch_upload_path')
         
-        fileList = os.listdir(attach_upload_path)
+        if watch_upload_path.rfind("/")+1 != len(watch_upload_path):
+            watch_upload_path = watch_upload_path+'/'
+        
+        fileList = os.listdir(watch_upload_path)
         for file in fileList:
             if file.upper().find(".TORRENT") > -1:
-                magnet = LogicNormal.make_magnet_from_file(attach_upload_path+file)
-                logger.debug("magnet : %s", magnet)
-                LogicNormal.add_download2(magnet, ModelSetting.get('default_torrent_program'), None, request_type='.torrent', request_sub_type='.torrent')
+                magnet = LogicNormal.make_magnet_from_file(watch_upload_path+file)
+                logger.debug("search_from_torrent_file() magnet : %s", magnet)
+                LogicNormal.add_download2(magnet, ModelSetting.get('watch_torrent_program'), ModelSetting.get('watch_download_path'), request_type='.torrent', request_sub_type='.torrent')
                 
-                #완료 된 경우 파일명 변환
-                after_name = file.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
-                logger.debug("before name : %s, after name : %s", file, after_name)
-                #파일 이동
-                shutil.move(attach_upload_path+file, attach_upload_path+after_name)
+                #완료 된 경우 삭제 or 파일명 변환
+                torrent_delete_yn = ModelSetting.get("torrent_delete_yn")
 
-        logger.debug("finish add .torrent file")
+                if torrent_delete_yn == 'True':
+                    logger.debug("torrent_delete_yn : %s", torrent_delete_yn)
+                    logger.debug("delete torrent file : %s", watch_upload_path+file)
+                    os.remove(watch_upload_path+file)
+                else:
+                    after_name = file.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
+                    logger.debug("before name : %s, after name : %s", file, after_name)
+                    #파일 이동
+                    shutil.move(watch_upload_path+file, watch_upload_path+after_name)
+        logger.debug("finish watch folder searching...")
 
     @staticmethod
     def make_magnet_from_file(file):

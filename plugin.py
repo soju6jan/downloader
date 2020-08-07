@@ -193,7 +193,7 @@ def ajax(sub):
             ret = ModelDownloaderItem.web_list(request)
             return jsonify(ret)
         
-        #토렌트 파일 업로드
+        #토렌트 파일 업로드(다운로드 요청)
         elif sub == 'upload_torrent_file':
             ret = LogicNormal.upload_torrent_file(request)
             return jsonify(ret)
