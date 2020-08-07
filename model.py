@@ -216,15 +216,15 @@ class ModelDownloaderItem(db.Model):
                 conditions = []
                 for tt in tmp:
                     if tt != '':
-                        conditions.append(ModelDownloaderItem.filename.like('%'+tt.strip()+'%') )
+                        conditions.append(ModelDownloaderItem.title.like('%'+tt.strip()+'%') )
                 query = query.filter(or_(*conditions))
             elif search.find(',') != -1:
                 tmp = search.split(',')
                 for tt in tmp:
                     if tt != '':
-                        query = query.filter(ModelDownloaderItem.filename.like('%'+tt.strip()+'%'))
+                        query = query.filter(ModelDownloaderItem.title.like('%'+tt.strip()+'%'))
             else:
-                query = query.filter(or_(ModelDownloaderItem.filename.like('%'+search+'%'), ModelDownloaderItem.movie_title.like('%'+search+'%')))
+                query = query.filter(ModelDownloaderItem.title.like('%'+search+'%'))
 
         
         if request_type != 'all':

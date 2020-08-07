@@ -185,7 +185,7 @@ class LogicNormal(object):
                     rule = rule.split('|')
                     sjva_path = download_path.replace(rule[0], rule[1])
                 if os.path.exists(os.path.dirname(sjva_path)):
-                    if not os.path.exits(sjva_path):
+                    if not os.path.exists(sjva_path):
                         os.makedirs(sjva_path)
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -218,7 +218,7 @@ class LogicNormal(object):
             LogicAria2.scheduler_function()
             
             #scheduler from seed folder
-            LogicNormal.search_from_torrent_file()
+            #LogicNormal.search_from_torrent_file()
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -264,6 +264,25 @@ class LogicNormal(object):
             logger.error(traceback.format_exc())
 
 
+    @staticmethod
+    def process_telegram_data(data):
+        flag = False
+        try:
+            logger.debug(data)
+            from bot_downloader_ktv.model import ModelBotDownloaderKtvItem
+            flag = ModelBotDownloaderKtvItem.receive_share_data(data)
+
+            if not flag:
+                from bot_downloader_movie.model import ModelMovieItem
+                flag = ModelMovieItem.receive_share_data(data)
+            if not flag:
+                from bot_downloader_av.model import ModelItem
+                flag = ModelItem.receive_share_data(data)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc()) 
+
+    
     @staticmethod
     def upload_torrent_file(request):
         #다운로드요청으로 넘어온 파일들
