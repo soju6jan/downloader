@@ -67,7 +67,10 @@ class Logic(object):
         'use_share_upload' : 'False',
         'use_share_upload_make_dir_rule' : '',
 
-        'attach_upload_path' : '',
+        'watch_torrent_program' : '0',
+        'watch_upload_path' : '',
+        'watch_download_path' : '',
+        'torrent_delete_yn' : 'False',
     }
 
     @staticmethod

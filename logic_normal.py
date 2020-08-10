@@ -40,23 +40,9 @@ from .logic_transmission import LogicTransmission
 from .logic_downloadstation import LogicDownloadStation
 from .logic_qbittorrent import LogicQbittorrent
 from .logic_aria2 import LogicAria2
+from .logic_watch import LogicWatch
 
 import plugin
-
-#file move
-import shutil
-
-#torrent to magnet
-import sys
-import urllib
-try:
-    import bencode
-except:
-    os.system("pip install bencode")
-    import bencode
-import hashlib
-import base64
-
 #########################################################
 
 class LogicNormal(object):
@@ -216,9 +202,7 @@ class LogicNormal(object):
             LogicDownloadStation.scheduler_function()
             LogicQbittorrent.scheduler_function()
             LogicAria2.scheduler_function()
-            
-            #scheduler from seed folder
-            #LogicNormal.search_from_torrent_file()
+            LogicWatch.scheduler_function()
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -281,87 +265,3 @@ class LogicNormal(object):
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc()) 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    @staticmethod
-    def upload_torrent_file(request):
-        logger.debug("upload_torrent_file")
-        try:
-            logger.debug("method : %s", request.method)
-            files = request.files
-            attach_upload_path = ModelSetting.get('attach_upload_path')
-            #업로드 폴더 없는 경우 생성
-            if not os.path.isdir(attach_upload_path): 
-                os.makedirs(attach_upload_path)
-            
-            #전달받은 path 경로에 / 없는 경우 예외처리
-            if attach_upload_path.rfind("/")+1 != len(attach_upload_path):
-                attach_upload_path = attach_upload_path+'/'
-            
-            for f in files.to_dict(flat=False)['attach_files[]']:
-                logger.debug("filename : %s", f.filename)
-                f.save(attach_upload_path+f.filename)
-            ret = {'ret':'success'}
-        except Exception as e: 
-            logger.error('Exception:%s', e)
-            logger.error(traceback.format_exc())
-            ret = {'ret':'error'}
-        finally:
-            return ret
-
-    @staticmethod
-    def search_from_torrent_file():
-        logger.debug("start add .torrent file")
-        attach_upload_path = ModelSetting.get('attach_upload_path')
-        if attach_upload_path.rfind("/")+1 != len(attach_upload_path):
-            attach_upload_path = attach_upload_path+'/'
-        
-        fileList = os.listdir(attach_upload_path)
-        for file in fileList:
-            if file.upper().find(".TORRENT") > -1:
-                magnet = LogicNormal.make_magnet_from_file(attach_upload_path+file)
-                logger.debug("magnet : %s", magnet)
-                LogicNormal.add_download2(magnet, ModelSetting.get('default_torrent_program'), None, request_type='.torrent', request_sub_type='.torrent')
-                
-                #완료 된 경우 파일명 변환
-                after_name = file.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
-                logger.debug("before name : %s, after name : %s", file, after_name)
-                #파일 이동
-                shutil.move(attach_upload_path+file, attach_upload_path+after_name)
-
-        logger.debug("finish add .torrent file")
-
-    @staticmethod
-    def make_magnet_from_file(file):
-        torrent = open(file, 'r').read()
-        metadata = bencode.bdecode(torrent)
-
-        hashcontents = bencode.bencode(metadata['info'])
-        digest = hashlib.sha1(hashcontents).digest()
-        b32hash = base64.b32encode(digest)
-
-        params = {'xt': 'urn:btih:%s' % b32hash, 'dn': metadata['info']['name'], 'tr': metadata['announce'], 'xl': metadata['info']['length']}
-
-        announcestr = ''
-        for announce in metadata['announce-list']:
-            announcestr += '&' + urllib.urlencode({'tr':announce[0]})
-
-        paramstr = urllib.urlencode(params) + announcestr
-        magneturi = 'magnet:?%s' % paramstr
-        magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
-        return magneturi
