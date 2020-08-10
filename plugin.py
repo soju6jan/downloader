@@ -30,6 +30,7 @@ from .logic_transmission import LogicTransmission
 from .logic_downloadstation import LogicDownloadStation
 from .logic_qbittorrent import LogicQbittorrent
 from .logic_aria2 import LogicAria2
+from .logic_watch import LogicWatch
 
 #########################################################
 
@@ -196,7 +197,7 @@ def ajax(sub):
         
         #토렌트 파일 업로드
         elif sub == 'upload_torrent_file':
-            ret = LogicNormal.upload_torrent_file(request)
+            ret = LogicWatch.upload_torrent_file(request)
             return jsonify(ret)
     except Exception as e: 
         logger.error('Exception:%s', e)
