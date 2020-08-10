@@ -61,7 +61,7 @@ class LogicWatch(object):
             download_path = request.form['download_path'] if 'download_path'  in request.form else None
 
             #다운로드 요청
-            if download_path is None and download_path != '':
+            if download_path not None and download_path != '':
                 for file in tmp_file_list:
                     if file.upper().find(".TORRENT") > -1:
                         magnet = LogicWatch.make_magnet_from_file(file)
