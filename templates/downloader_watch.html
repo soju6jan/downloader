@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  {{ macros.m_button_group([['global_setting_save_btn', '설정 저장']])}}
+  {{ macros.m_row_start('5') }}
+  {{ macros.m_row_end() }}
+  <nav>
+    {{ macros.m_tab_head_start() }}
+      {{ macros.m_tab_head2('watch', '감시폴더', true) }}
+    {{ macros.m_tab_head_end() }}
+  </nav>
+  <form id='setting' name='setting'>
+  <div class="tab-content" id="nav-tabContent">
+    {{ macros.m_tab_content_start('watch', true) }}
+      {{ macros.setting_input_text('watch_upload_path', '감시폴더/업로드 경로', value=arg['watch_upload_path'], desc=['주기적으로 체크할 폴더 경로']) }}
+      {{ macros.setting_radio('watch_torrent_program', '감시용 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['watch_torrent_program']) }}
+      <!--
+      {{ macros.setting_input_text('watch_download_path', '다운로드 경로', value='', desc=['토렌트 프로그램의 기본 경로'], disabled=True) }}
+      -->
+      {{ macros.setting_checkbox('torrent_delete_yn', '토렌트파일 삭제 유무', value=arg['torrent_delete_yn'], desc=['On : 다운로드 추가 후 torrent파일을 삭제.', 'Off : torrent 파일 보관(확장자 complete 변경)']) }}
+      {{ macros.m_hr() }}
+      {{ macros.setting_button([['direct_execute_btn', '바로 실행']], left='바로 실행' ) }}
+    {{ macros.m_tab_content_end() }}
+  </div><!--tab-content-->
+  </form>
+</div> <!--전체-->
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name'] }}";
+var sub = "{{arg['sub'] }}";
+var current_data = null;
+
+$(document).ready(function(){
+});
+
+
+$("body").on('click', '#direct_execute_btn', function(e){
+  e.preventDefault();
+  $.ajax({
+    url: '/' + package_name + '/ajax/'+sub+'/direct_execute',
+    type: "POST", 
+    cache: false,
+    data: {},
+    dataType: "json",
+    success: function (data) {
+      if (data) {
+        $.notify('<strong>실행 요청을 하였습니다.</strong>', {type: 'success'});
+      } else {
+        $.notify('<strong>요청 실패하였습니다.</strong>', {type: 'warning'});
+      }
+    }
+  });
+});
+
+
+</script>    
+{% endblock %}

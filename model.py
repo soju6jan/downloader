@@ -80,7 +80,9 @@ class ModelSetting(db.Model):
     def to_dict():
         try:
             from framework.util import Util
-            return Util.db_list_to_dict(db.session.query(ModelSetting).all())
+            ret = Util.db_list_to_dict(db.session.query(ModelSetting).all())
+            ret['package_name'] = package_name
+            return ret
         except Exception as e:
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())

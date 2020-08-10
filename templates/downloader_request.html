@@ -11,10 +11,10 @@
         <div class="input-group col-sm-9">
             <input id="download_url" name="download_url" type="text" class="form-control form-control-sm" value="">
             <button id="add_torrent_file" class="btn btn-sm btn-outline-success">토렌트 파일 선택</button>
-            <input type="file" id="attach_files" name="attach_files[]" value="" style="display:none;" multiple="multiple"/>
+            <input type="file" id="attach_files" name="attach_files[]" value="" style="display:none;" multiple="multiple" accept=".torrent, .TORRENT"/>
         </div>
         <div style="padding-left:20px; padding-top:5px;">
-        <em>Magnet or Torrent File URL<br></em>
+        <em>Magnet or Torrent File<br></em>
     </div>
     </div>
   </div>
@@ -49,8 +49,6 @@ $('input[type=radio][name=default_torrent_program]').change(function() {
 });
 
 function set_default_torrent_program(type) {
-  //console.log(type)
-  //console.log(current_data)
   $('input[name=default_torrent_program]')[parseInt(type)].checked = true;
   if ( type == '0') {
     document.getElementById("download_path").value = current_data.transmission_default_path;
@@ -66,18 +64,35 @@ function set_default_torrent_program(type) {
 // 다운로드 버튼
 $("body").on('click', '#download_start', function(e){
   e.preventDefault();
-  var formData = get_formdata('#download_form');
-  
-  $.ajax({
-    url: '/' + package_name + '/ajax/add_download',
-    type: "POST", 
-    cache: false,
-    data: formData,
-    dataType: "json",
-    success: function (data) {
-      show_result_add_download(data);
-    }
-  });
+  if (document.getElementById("attach_files").files.length > 0) {
+    //if(fileCnt > 0 && uploadBool){
+    $("#download_form").attr("enctype", "multipart/form-data");
+    var formData = new FormData(document.getElementById("download_form"));
+    $.ajax({
+      url: '/' + package_name + '/ajax/watch/upload_torrent_file',
+      type: "POST", 
+      cache: false,
+      data: formData,
+      contentType: false,	//파일전송시 필요
+      processData: false,	//파일전송시 필요
+      dataType: "json",
+      success: function (data) {
+        show_result_add_download(data);
+      }
+    });
+  } else {
+    var formData = get_formdata('#download_form');
+    $.ajax({
+      url: '/' + package_name + '/ajax/add_download',
+      type: "POST", 
+      cache: false,
+      data: formData,
+      dataType: "json",
+      success: function (data) {
+        show_result_add_download(data);
+      }
+    });
+  }
 });
 
 //토렌트 파일 선택 버튼
@@ -87,55 +102,34 @@ $("body").on("click", "#add_torrent_file", function(e){
 });
 
 $("#attach_files").change(function(e){
-    e.preventDefault();
-    var fileList = document.getElementById("attach_files").files;
-    var fileCnt = fileList.length;
-    var uploadBool = true;
-    
-    for(var i=0; i<fileCnt; i++){
-        var fileName = fileList[i].name;
-        var fileExt = fileName.substring(fileName.lastIndexOf(".")+1).toUpperCase();
+  e.preventDefault();
+  var fileList = document.getElementById("attach_files").files;
 
-        if(fileExt.toUpperCase() != "TORRENT"){
-            $.notify('<strong>업로드 불가능한 확장자가 있습니다.<br>torrent파일만 가능합니다.</strong>', {
-              type: 'warning'
-            });
-            $("#attach_files").val("");
-            uploadBool = false;
-            break;
-        }
-    }
-    //upload 가능(모두 torrent 파일)
-    if(fileCnt > 0 && uploadBool){
-        $("#download_form").attr("enctype", "multipart/form-data");
-        var formData = new FormData(document.getElementById("download_form"));
-        $.ajax({
-            url: '/' + package_name + '/ajax/upload_torrent_file',
-            type: "POST", 
-            cache: false,
-            data: formData,
-            contentType: false,	//파일전송시 필요
-            processData: false,	//파일전송시 필요
-            dataType: "json",
-            success: function (data) {
-            $.notify('<strong>파일을 업로드하였습니다.</strong>', {
-                type: 'success'
-            });
-            setTimeout(() => {
-                location.reload()
-            }, 1000);
-            },
-            error : function (data){
-            $.notify('<strong>파일업로드 실패하였습니다.</strong>', {
-                type: 'warning'
-            });
-            }
-        });
-    }else{
-    $.notify('<strong>업로드할 파일이 존재하지 않습니다.</strong>', {
+  var fileCnt = fileList.length;
+  var uploadBool = true;
+  var file_str = '';
+  for(var i=0; i<fileCnt; i++){
+      var fileName = fileList[i].name;
+      var fileExt = fileName.substring(fileName.lastIndexOf(".")+1).toUpperCase();
+
+      if(fileExt.toUpperCase() != "TORRENT"){
+          $.notify('<strong>업로드 불가능한 확장자가 있습니다.<br>torrent파일만 가능합니다.</strong>', {
             type: 'warning'
-        });
-    }
+          });
+          $("#attach_files").val("");
+          $("#download_url").val("");
+          uploadBool = false;
+          return;
+      }
+      if (file_str == '') {
+        file_str = fileName;
+      } else {
+        file_str += ', ' + fileName;
+      }
+  }
+  $("#download_url").val(file_str);
+  return;
 });
+
 </script>    
 {% endblock %}

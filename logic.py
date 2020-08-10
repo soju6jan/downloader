@@ -69,7 +69,7 @@ class Logic(object):
 
         'watch_torrent_program' : '0',
         'watch_upload_path' : '',
-        'watch_download_path' : '',
+        #'watch_download_path' : '',
         'torrent_delete_yn' : 'False',
     }
 

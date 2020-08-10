@@ -8,7 +8,6 @@
   <nav>
     {{ macros.m_tab_head_start() }}
       {{ macros.m_tab_head2('normal', '일반', true) }}
-      {{ macros.m_tab_head2('watch', '감시폴더', false) }}
       {{ macros.m_tab_head2('etc', '기타', false) }}
     {{ macros.m_tab_head_end() }}
   </nav>
@@ -39,26 +38,6 @@
       </div>
     {{ macros.m_tab_content_end() }}
 
-    {{ macros.m_tab_content_start('watch', false) }}
-    {{ macros.setting_input_text('watch_upload_path', '감시폴더/업로드 경로', value=arg['watch_upload_path'], desc=['주기적으로 체크할 폴더 경로']) }}
-    <div class="row" style="padding-top: 10px; padding-bottom:10px; align-items: center;">
-        <div class="col-sm-3 set-left">
-            <strong>다운로드 경로</strong>
-        </div>
-        <div class="col-sm-9">
-            <div class="input-group col-sm-9">
-                <input id="watch_download_path" name="watch_download_path" type="text" class="form-control form-control-sm" value="" readonly="readonly">
-            </div>
-            <div style="padding-left:20px; padding-top:5px;">
-                <em>토렌트 프로그램의 기본 경로</em>
-            </div>
-        </div>
-    </div>
-    {{ macros.setting_checkbox('torrent_delete_yn', '토렌트파일 삭제 유무', value=arg['torrent_delete_yn'], desc='On : 다운로드 추가 후 torrent파일을 삭제. Off : torrent 파일 보관(확장자 complete 변경)') }}
-    {{ macros.setting_radio('watch_torrent_program', '감시용 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['watch_torrent_program']) }}
-    {{ macros.setting_button([['global_one_execute_btn', '1회 실행']], left='1회 실행' ) }}
-    {{ macros.m_tab_content_end() }}
-
     {{ macros.m_tab_content_start('etc', false) }}
       {{ macros.setting_button([['global_one_execute_btn', '1회 실행']], left='1회 실행' ) }}
       {{ macros.setting_button([['global_reset_db_btn', '목록 초기화']], left='DB정리' ) }}
@@ -83,38 +62,8 @@ $('#use_share_upload').change(function () {
   use_collapse('use_share_upload');
 });
 
-var watch_torrent_program = "{{arg['watch_torrent_program']}}"
 $(document).ready(function(){
-  $.ajax({
-    url: '/' + package_name + '/ajax/get_setting',
-    type: "POST", 
-    cache: false,
-    data: {},
-    dataType: "json",
-    success: function (data) {
-      current_data = data
-      set_watch_torrent_program(watch_torrent_program);
-    }
-  });
 });
 
-$('input[type=radio][name=watch_torrent_program]').change(function() {
-    set_watch_torrent_program(this.value);
-});
-
-function set_watch_torrent_program(type) {
-  //console.log(type)
-  //console.log(current_data)
-  $('input[name=watch_torrent_program]')[parseInt(type)].checked = true;
-  if ( type == '0') {
-    document.getElementById("watch_download_path").value = current_data.transmission_default_path;
-  } else if ( type == '1') {
-    document.getElementById("watch_download_path").value = current_data.downloadstation_default_path;
-  } else if ( type == '2') {
-    document.getElementById("watch_download_path").value = current_data.qbittorrnet_default_path;
-  } else if ( type == '3') {
-    document.getElementById("watch_download_path").value = current_data.aria2_default_path;
-  }
-}
 </script>    
 {% endblock %}

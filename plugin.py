@@ -43,7 +43,7 @@ blueprint = Blueprint(package_name, package_name, url_prefix='/%s' %  package_na
 menu = {
     'main' : [package_name, '다운로드 클라이언트'],
     'sub' : [
-        ['setting', '기본 설정'], ['transmission', '트랜스미션'], ['downloadstation', '다운로드 스테이션'], ['qbittorrent', '큐빗토렌트'], ['aria2', 'aria2'], ['request', '다운로드 요청'], ['list', '목록'], ['log', '로그']
+        ['setting', '기본 설정'], ['watch', '감시폴더'], ['request', '다운로드 요청'], ['list', '목록'], ['transmission', '트랜스미션'], ['downloadstation', '다운로드 스테이션'], ['qbittorrent', '큐빗토렌트'], ['aria2', 'aria2'], ['log', '로그']
     ], 
     'sub2' : {
         'transmission' : [
@@ -96,26 +96,22 @@ def first_menu(sub):
     logger.debug('DETAIL %s %s', package_name, sub)
     if sub == 'setting':
         arg = ModelSetting.to_dict()
-        arg['package_name']  = package_name
         arg['scheduler'] = str(scheduler.is_include(package_name))
         arg['is_running'] = str(scheduler.is_running(package_name))
+        arg['tracker_list'] = ModelSetting.get('tracker_list').replace('\n', ', ')
         return render_template('%s_%s.html' % (package_name, sub), arg=arg)
     elif sub in ['transmission', 'downloadstation', 'qbittorrent', 'aria2']:
         return redirect('/%s/%s/status' % (package_name, sub))
-
-
-    elif sub == 'request':
+    elif sub in ['request', 'list', 'watch']:
         arg = ModelSetting.to_dict()
-        arg['package_name']  = package_name
+        arg['sub'] = sub
         return render_template('%s_%s.html' % (package_name, sub), arg=arg)
-    elif sub == 'list':
-        arg = {}
-        return render_template('%s_list.html' % package_name, arg=arg)
     elif sub == 'log':
         return render_template('log.html', package=package_name)
     return render_template('sample.html', title='%s - %s' % (package_name, sub))
 
 
+# TODO : 
 @blueprint.route('/<sub>/<sub2>')
 @login_required
 def second_menu(sub, sub2):
@@ -136,28 +132,9 @@ def second_menu(sub, sub2):
         logger.error('Exception:%s', e)
         logger.error(traceback.format_exc())
 
-
 #########################################################
 # For UI 
 #########################################################
-@blueprint.route('/ajax/<sub>/<sub2>', methods=['GET', 'POST'])
-@login_required
-def second_ajax(sub, sub2):
-    try:     
-        if sub == 'transmission':
-            return LogicTransmission.process_ajax(sub2, request)
-        elif sub == 'downloadstation':
-            return LogicDownloadStation.process_ajax(sub2, request)
-        elif sub == 'qbittorrent':
-            return LogicQbittorrent.process_ajax(sub2, request)
-        elif sub == 'aria2':
-            return LogicAria2.process_ajax(sub2, request)
-    except Exception as e: 
-        logger.error('Exception:%s', e)
-        logger.error(traceback.format_exc())
-
-
-
 @blueprint.route('/ajax/<sub>', methods=['GET', 'POST'])
 @login_required
 def ajax(sub):
@@ -194,16 +171,28 @@ def ajax(sub):
         elif sub == 'web_list':
             ret = ModelDownloaderItem.web_list(request)
             return jsonify(ret)
-        
-        #토렌트 파일 업로드
-        elif sub == 'upload_torrent_file':
-            ret = LogicWatch.upload_torrent_file(request)
-            return jsonify(ret)
     except Exception as e: 
         logger.error('Exception:%s', e)
         logger.error(traceback.format_exc())  
 
 
+@blueprint.route('/ajax/<sub>/<sub2>', methods=['GET', 'POST'])
+@login_required
+def second_ajax(sub, sub2):
+    try:     
+        if sub == 'transmission':
+            return LogicTransmission.process_ajax(sub2, request)
+        elif sub == 'downloadstation':
+            return LogicDownloadStation.process_ajax(sub2, request)
+        elif sub == 'qbittorrent':
+            return LogicQbittorrent.process_ajax(sub2, request)
+        elif sub == 'aria2':
+            return LogicAria2.process_ajax(sub2, request)
+        elif sub == 'watch':
+            return LogicWatch.process_ajax(sub2, request)
+    except Exception as e: 
+        logger.error('Exception:%s', e)
+        logger.error(traceback.format_exc())
 
 #########################################################
 # API

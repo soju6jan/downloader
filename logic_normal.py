@@ -193,7 +193,6 @@ class LogicNormal(object):
             return 'fail'
     
 
-
     @staticmethod
     def scheduler_function():
         try:
