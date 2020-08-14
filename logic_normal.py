@@ -131,23 +131,23 @@ class LogicNormal(object):
             if default_torrent_program == '0':
                 if download_path is None:
                     download_path = arg['transmission_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
-                ret = LogicTransmission.add_download(download_url, download_path, magnet=magnet)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url, magnet=magnet)
+                ret = LogicTransmission.add_download(download_url, download_path)
             elif default_torrent_program == '1':
                 if download_path is None:
                     download_path = arg['downloadstation_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
-                ret = LogicDownloadStation.add_download(download_url, download_path, magnet=magnet)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url, magnet=magnet)
+                ret = LogicDownloadStation.add_download(download_url, download_path)
             elif default_torrent_program == '2':
                 if download_path is None:
                     download_path = arg['qbittorrnet_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
-                ret = LogicQbittorrent.add_download(download_url, download_path, magnet=magnet)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url, magnet=magnet)
+                ret = LogicQbittorrent.add_download(download_url, download_path)
             elif default_torrent_program == '3':
                 if download_path is None:
                     download_path = arg['aria2_default_path']
-                download_path = LogicNormal.get_download_path(download_path, server_id, download_url)
-                ret = LogicAria2.add_download(download_url, download_path, magnet=magnet)
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url, magnet=magnet)
+                ret = LogicAria2.add_download(download_url, download_path)
 
             ret['default_torrent_program'] = default_torrent_program
             ret['downloader_item_id'] = ModelDownloaderItem.save(ret, request_type, request_sub_type)
