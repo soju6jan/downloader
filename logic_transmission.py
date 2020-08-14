@@ -154,7 +154,15 @@ class LogicTransmission(object):
         try:
             if not url.startswith('magnet') and not url.endswith('.torrent'):
                 if ModelSetting.get_bool('transmission_normal_file_download'):
-                    th = threading.Thread(target=LogicTransmission.download_thread_function, args=(url, ModelSetting.get('transmission_normal_file_download_path')))
+                    #2020-08-14
+                    # 공유용이라면  대응되는 sjva 쪽 경로에 받도록한다.
+                    if ModelSetting.get_bool('use_share_upload'):
+                        #path는 토렌트프로그램상의 경로
+                        rule = ModelSetting.get('use_share_upload_make_dir_rule').split('|')
+                        path = path.replace(rule[0], rule[1])
+                    else:
+                        path = ModelSetting.get('transmission_normal_file_download_path')
+                    th = threading.Thread(target=LogicTransmission.download_thread_function, args=(url, path))
                     th.start()
                     ret['ret'] = 'success2'
                 else:
