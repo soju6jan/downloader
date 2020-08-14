@@ -162,6 +162,7 @@ class LogicTransmission(object):
                         path = path.replace(rule[0], rule[1])
                     else:
                         path = ModelSetting.get('transmission_normal_file_download_path')
+                    logger.debug(u'일반파일 다운로드 경로 : %s', path)
                     th = threading.Thread(target=LogicTransmission.download_thread_function, args=(url, path))
                     th.start()
                     ret['ret'] = 'success2'

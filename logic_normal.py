@@ -160,7 +160,7 @@ class LogicNormal(object):
 
     @staticmethod
     def get_download_path(download_path, server_id, download_url):
-        logger.debug('download_path:%s server_id:%s', download_path, server_id)
+        logger.debug('download_path:%s server_id:%s download_url:%s', download_path, server_id, download_url)
         try:
             if server_id is not None and ModelSetting.get_bool('use_share_upload'):
                 download_path = os.path.join(download_path, '%s_%s_%s' % (server_id, download_url[20:60].lower(), SystemModelSetting.get('sjva_me_user_id')))
