@@ -239,3 +239,4 @@ class ModelDownloaderItem(db.Model):
             query = query.order_by(ModelDownloaderItem.id)
 
         return query
+
