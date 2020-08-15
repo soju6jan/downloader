@@ -259,13 +259,15 @@ class LogicNormal(object):
             logger.debug(data)
             from bot_downloader_ktv.model import ModelBotDownloaderKtvItem
             flag = ModelBotDownloaderKtvItem.receive_share_data(data)
-
+            logger.debug('process_telegram_data ktv : %s', flag)
             if not flag:
                 from bot_downloader_movie.model import ModelMovieItem
                 flag = ModelMovieItem.receive_share_data(data)
+                logger.debug('process_telegram_data movie : %s', flag)
             if not flag:
                 from bot_downloader_av.model import ModelItem
                 flag = ModelItem.receive_share_data(data)
+                logger.debug('process_telegram_data av : %s', flag)
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc()) 
