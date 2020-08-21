@@ -158,8 +158,10 @@ class LogicTransmission(object):
                     # 공유용이라면  대응되는 sjva 쪽 경로에 받도록한다.
                     if ModelSetting.get_bool('use_share_upload'):
                         #path는 토렌트프로그램상의 경로
-                        rule = ModelSetting.get('use_share_upload_make_dir_rule').split('|')
-                        path = path.replace(rule[0], rule[1])
+                        tmp = ModelSetting.get('use_share_upload_make_dir_rule')
+                        if tmp != '':
+                            rule = tmp.split('|')
+                            path = path.replace(rule[0], rule[1])
                     else:
                         path = ModelSetting.get('transmission_normal_file_download_path')
                     logger.debug(u'일반파일 다운로드 경로 : %s', path)
