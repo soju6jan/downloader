@@ -160,7 +160,7 @@ class LogicNormal(object):
 
     @staticmethod
     def get_download_path(download_path, server_id, download_url, magnet=None):
-        logger.debug('download_path:%s server_id:%s download_url:%s', download_path, server_id, download_url)
+        logger.debug('download_path:%s server_id:%s download_url:%s\nmagnet:%s', download_path, server_id, download_url, magnet)
         try:
             if server_id is not None and ModelSetting.get_bool('use_share_upload'):
                 if magnet is None:
