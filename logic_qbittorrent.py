@@ -299,7 +299,7 @@ class LogicQbittorrent(object):
 
     @staticmethod
     def is_completed(data):
-        return (data['state'] in ['uploading', 'pausedUP', 'stalledUP', 'checkingUP'])
+        return (data['progress'] == 1 and data['state'] in ['uploading', 'pausedUP', 'stalledUP', 'checkingUP', 'queuedUP'])
 
 
     @staticmethod
