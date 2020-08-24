@@ -95,9 +95,23 @@ class LogicQbittorrent(object):
             if path is not None and path.strip() == '':
                 path = None
             if ModelSetting.get_bool('qbittorrnet_normal_file_download') and url.startswith('http'):
-                th = threading.Thread(target=LogicQbittorrent.download_thread_function, args=(url,))
+                #2020-08-24
+                # 공유용이라면  대응되는 sjva 쪽 경로에 받도록한다.
+                if ModelSetting.get_bool('use_share_upload'):
+                    #path는 토렌트프로그램상의 경로
+                    tmp = ModelSetting.get('use_share_upload_make_dir_rule')
+                    if tmp != '':
+                        rule = tmp.split('|')
+                        path = path.replace(rule[0], rule[1])
+                else:
+                    path = ModelSetting.get('transmission_normal_file_download_path')
+                logger.debug(u'일반파일 다운로드 경로 : %s', path)
+                th = threading.Thread(target=LogicQbittorrent.download_thread_function, args=(url, path))
                 th.start()
                 ret['ret'] = 'success2'
+                #th = threading.Thread(target=LogicQbittorrent.download_thread_function, args=(url,))
+                #th.start()
+                #ret['ret'] = 'success2'
             else:
                 if LogicQbittorrent.program is None:
                     LogicQbittorrent.program_init()
@@ -133,9 +147,9 @@ class LogicQbittorrent(object):
         return fname[0].replace('"', '')
 
     @staticmethod
-    def download_thread_function(url):
+    def download_thread_function(url, download_path):
         try:
-            download_path = ModelSetting.get('qbittorrnet_normal_file_download_path')
+            #download_path = ModelSetting.get('qbittorrnet_normal_file_download_path')
             r = requests.get(url, allow_redirects=True)
             filename = LogicQbittorrent.get_filename_from_cd(r.headers.get('content-disposition'))
             if not os.path.exists(download_path):
