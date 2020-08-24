@@ -235,6 +235,7 @@ class LogicTransmission(object):
     @staticmethod
     def download_thread_function(url, download_path):
         try:
+            logger.debug('download_thread_function %s, %s', url, download_path)
             r = requests.get(url, allow_redirects=True)
             filename = LogicTransmission.get_filename_from_cd(r.headers.get('content-disposition'))
             filepath = os.path.join(download_path, filename)
@@ -247,7 +248,7 @@ class LogicTransmission(object):
                 logger.error('Exception:%s', e)
             except:
                 pass
-            #logger.error(traceback.format_exc())
+            logger.error(traceback.format_exc())
             
         finally:
             socketio.emit("notify", data, namespace='/framework', broadcast=True) 
