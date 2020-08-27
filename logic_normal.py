@@ -269,7 +269,7 @@ class LogicNormal(object):
                 logger.debug('process_telegram_data av : %s', flag)
         except Exception as e: 
             logger.error('Exception:%s', e)
-            logger.error(traceback.format_exc())
+            #logger.error(traceback.format_exc())
 
         """
         flag = False
