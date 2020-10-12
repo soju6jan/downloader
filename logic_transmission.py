@@ -58,6 +58,8 @@ class LogicTransmission(object):
                 include_data = (req.form['include_data'] == 'true')
                 data = LogicTransmission.remove(ds_id, include_data=include_data)
                 return jsonify(data)
+            elif sub == 'check_free_space':
+                return jsonify(LogicTransmission.get_free_space(req.form['transmission_check_free_space_path']))
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -138,7 +140,6 @@ class LogicTransmission(object):
         try:
             if url.strip() == '':
                 return
-            ret = {}
             domain, port = LogicTransmission.get_domain_and_port_from_url(url)
             if ModelSetting.get_bool('transmission_use_auth'):
                 LogicTransmission.program = transmissionrpc.Client(domain, port, user=ModelSetting.get('transmission_id'), password=ModelSetting.get('transmission_pw'))
@@ -186,6 +187,14 @@ class LogicTransmission(object):
             
             if path is not None and path.strip() == '':
                 path = None
+            if ModelSetting.get_bool('transmission_check_free_space'):
+                sub_ret = LogicTransmission.get_free_space(ModelSetting.get('transmission_check_free_space_path'))
+                if sub_ret['success']:
+                    free_space_in_gb = float(sub_ret['free_space']) / (1024**3)
+                    if free_space_in_gb < ModelSetting.get_int('transmission_check_free_space_in_gb'):
+                        raise Exception('여유 공간 부족: {:.1f} GB'.format(free_space_in_gb))
+                else:
+                    logger.debug(u'여유 공간 확인 실패: %s', sub_ret['msg'])
             if path is None:
                 obj = LogicTransmission.program.add_torrent(url)
             else:
@@ -219,6 +228,22 @@ class LogicTransmission(object):
         finally:
             return ret
         """
+
+    @staticmethod
+    def get_free_space(check_path):
+        if LogicTransmission.program is None:
+            LogicTransmission.program_init()
+        if LogicTransmission.program is None:
+            return {'success': False, 'msg': u'트랜스미션 접속 실패'}
+        
+        try:
+            if check_path is None or check_path.strip() == '':
+                check_path = (LogicTransmission.program.get_session()).download_dir
+            return {'success': True, 'check_path': check_path, 'free_space': LogicTransmission.program.free_space(check_path.strip())}
+        except Exception as e:            
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return {'success': False, 'msg': str(e)}
 
     @staticmethod
     def get_filename_from_cd(cd):
