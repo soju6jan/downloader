@@ -1,16 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div>
+<div class="mb-3">
   {{ macros.m_button_group([['global_setting_save_btn', '설정 저장']])}}
   {{ macros.m_row_start('5') }}
   {{ macros.m_row_end() }}
   <form id='setting' name='setting'>
   {{ macros.setting_input_text_and_buttons('transmission_url', 'URL', [['transmission_web_btn', 'GO']], value=arg['transmission_url'], desc='트랜스미션 URL. Port 필수') }}
   {{ macros.setting_checkbox('transmission_use_auth', '인증 사용', value=arg['transmission_use_auth']) }}
-  {{ macros.setting_input_text('transmission_id', 'ID', value=arg['transmission_id'], col='3') }}
-  {{ macros.setting_input_text_and_buttons('transmission_pw', '암호', [['transmission_test_btn', '접속 확인']], value=arg['transmission_pw'], col='4', type='password') }}
+  <div id="transmission_use_auth_div" class="collapse">
+    {{ macros.setting_input_text('transmission_id', 'ID', value=arg['transmission_id'], col='3') }}
+    {{ macros.setting_input_text_and_buttons('transmission_pw', '암호', [['transmission_test_btn', '접속 확인']], value=arg['transmission_pw'], col='4', type='password') }}
+  </div>
   {{ macros.setting_input_text('transmission_default_path', '다운로드 경로', value=arg['transmission_default_path'], desc=['기본 다운로드 경로. 생략시 트랜스미션의 기본 경로를 사용', '트랜스미션 설치 기기의 경로를 입력해야 합니다.']) }}
+  {{ macros.setting_checkbox('transmission_check_free_space', '여유 공간 확인', value=arg['transmission_check_free_space'], desc=['On : 다운로드 추가 전 여유 공간을 확인합니다.']) }}
+  <div id="transmission_check_free_space_div" class="collapse">
+    {{ macros.setting_input_int('transmission_check_free_space_in_gb', '여유 공간 용량', value=arg['transmission_check_free_space_in_gb'], min='0', placeholder='5', desc='남은 용량이 이 값 이하면 다운로드 하지 않습니다. 단위: GB') }}
+    {{ macros.setting_input_text_and_buttons('transmission_check_free_space_path', '여유 공간 확인 경로', [['transmission_check_free_space_test_btn', '테스트']], value=arg['transmission_check_free_space_path'], desc=['트랜스미션이 보는 경로입니다. 비워두면 다운로드 경로의 여유 공간을 확인합니다.']) }}
+  </div>
   {{ macros.setting_checkbox('transmission_normal_file_download', '일반 파일 다운로드', value=arg['transmission_normal_file_download'], desc=['On : 트랜스미션은 토렌트만 다운로드 할 수 있습니다.', ' 자막 등 일반 파일을 SJVA 대신 다운로드합니다.']) }}
   <div id="transmission_normal_file_download_div" class="collapse">
     {{ macros.setting_input_text('transmission_normal_file_download_path', '일반 파일 다운로드 경로', value=arg['transmission_normal_file_download_path'], desc=['SJVA 상의 경로입니다.']) }}
@@ -24,6 +31,8 @@ var package_name = "{{arg['package_name']}}";
 var sub = "{{arg['sub'] }}";
 
 $(document).ready(function(){
+  use_collapse("transmission_use_auth")
+  use_collapse("transmission_check_free_space")
   use_collapse("transmission_normal_file_download")
 });
 
@@ -58,6 +67,38 @@ $("body").on('click', '#transmission_test_btn', function(e){
       }
     }
   });
+});
+
+// 트랜스미션 여유공간 확인
+$("body").on('click', '#transmission_check_free_space_test_btn', function(e){
+  e.preventDefault();
+  var formData = get_formdata('#setting');
+  $.ajax({
+    url: '/' + package_name + '/ajax/' + sub + '/check_free_space',
+    type: "POST", 
+    cache: false,
+    data: formData,
+    dataType: "json",
+    success: function (data) {
+      if (data.success) {
+        $.notify('<strong>확인 경로: ' + data.check_path + '<br>남은 용량: ' + humanFileSize(data.free_space) + '</strong>', {
+          type: 'success'
+        });
+      } else {
+        $.notify('<strong>에러 : ' + data.msg + '</strong>', {
+          type: 'warning'
+        });
+      }
+    }
+  });
+});
+
+$('#transmission_use_auth').change(function() {
+  use_collapse('transmission_use_auth');
+});
+
+$('#transmission_check_free_space').change(function() {
+  use_collapse('transmission_check_free_space');
 });
 
 $('#transmission_normal_file_download').change(function() {

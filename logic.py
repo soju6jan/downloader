@@ -47,6 +47,9 @@ class Logic(object):
         'transmission_default_path' : '',
         'transmission_normal_file_download' : 'False',
         'transmission_normal_file_download_path' : '',
+        'transmission_check_free_space': 'False',
+        'transmission_check_free_space_in_gb': '5',
+        'transmission_check_free_space_path': '',
         
         'downloadstation_url' : '',
         'downloadstation_id' : '',
