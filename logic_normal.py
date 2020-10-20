@@ -11,7 +11,6 @@ import re
 import json
 import requests
 import urllib
-import urllib2
 import lxml.html
 from enum import Enum
 import threading

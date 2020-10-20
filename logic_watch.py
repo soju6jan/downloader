@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify, session, send_from_directory 
-
+from framework import py_urllib
 # 패키지
 from .plugin import package_name, logger
 from .model import ModelSetting, ModelDownloaderItem
@@ -21,7 +21,6 @@ import shutil
 
 #torrent to magnet
 import sys
-import urllib
 try:
     import bencode
 except:
@@ -29,6 +28,7 @@ except:
     import bencode
 import hashlib
 import base64
+
 
 #########################################################
 
@@ -152,9 +152,9 @@ class LogicWatch(object):
 
         announcestr = ''
         for announce in metadata['announce-list']:
-            announcestr += '&' + urllib.urlencode({'tr':announce[0]})
+            announcestr += '&' + py_urllib.urlencode({'tr':announce[0]})
 
-        paramstr = urllib.urlencode(params) + announcestr
+        paramstr = py_urllib.urlencode(params) + announcestr
         magneturi = 'magnet:?%s' % paramstr
         magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
         logger.debug('magneturi : %s', magneturi)

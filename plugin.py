@@ -41,22 +41,22 @@ from .logic_watch import LogicWatch
 blueprint = Blueprint(package_name, package_name, url_prefix='/%s' %  package_name, template_folder=os.path.join(os.path.dirname(__file__), 'templates'))
 
 menu = {
-    'main' : [package_name, '다운로드 클라이언트'],
+    'main' : [package_name, u'다운로드 클라이언트'],
     'sub' : [
-        ['setting', '기본 설정'], ['watch', '감시폴더'], ['request', '다운로드 요청'], ['list', '목록'], ['transmission', '트랜스미션'], ['downloadstation', '다운로드 스테이션'], ['qbittorrent', '큐빗토렌트'], ['aria2', 'aria2'], ['log', '로그']
+        ['setting', u'기본 설정'], ['watch', u'감시폴더'], ['request', u'다운로드 요청'], ['list', u'목록'], ['transmission', u'트랜스미션'], ['downloadstation', u'다운로드 스테이션'], ['qbittorrent', u'큐빗토렌트'], ['aria2', u'aria2'], ['log', u'로그']
     ], 
     'sub2' : {
         'transmission' : [
-            ['setting', '설정'], ['status', '상태']
+            ['setting', u'설정'], ['status', u'상태']
         ],
         'downloadstation' : [
-            ['setting', '설정'], ['status', '상태']
+            ['setting', u'설정'], ['status', u'상태']
         ],
         'qbittorrent' : [
-            ['setting', '설정'], ['status', '상태']
+            ['setting', u'설정'], ['status', u'상태']
         ],
         'aria2' : [
-            ['setting', '설정'], ['status', '상태']
+            ['setting', u'설정'], ['status', u'상태']
         ],
     },
     'category' : 'torrent'
@@ -67,7 +67,7 @@ plugin_info = {
     'name' : 'downloader',
     'category_name' : 'torrent',
     'developer' : 'soju6jan',
-    'description' : '토렌트 다운로드 클라이언트 설정',
+    'description' : u'토렌트 다운로드 클라이언트 설정',
     'home' : 'https://github.com/soju6jan/downloader',
     'more' : '',
 }
