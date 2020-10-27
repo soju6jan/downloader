@@ -19,15 +19,7 @@ from .model import ModelSetting, ModelDownloaderItem
 #file move
 import shutil
 
-#torrent to magnet
-import sys
-try:
-    import bencode
-except:
-    os.system("{} install bencode".format(app.config['config']['pip']))
-    import bencode
-import hashlib
-import base64
+
 
 
 #########################################################
@@ -141,21 +133,54 @@ class LogicWatch(object):
 
     @staticmethod
     def make_magnet_from_file(file):
-        torrent = open(file, 'r').read()
-        metadata = bencode.bdecode(torrent)
+        #torrent to magnet
+        import hashlib
+        import base64
+        if app.config['config']['is_py2']:
+            try:
+                import bencode
+            except:
+                os.system("{} install bencode".format(app.config['config']['pip']))
+                import bencode
+            torrent = open(file, 'r').read()
+            metadata = bencode.bdecode(torrent)
 
-        hashcontents = bencode.bencode(metadata['info'])
-        digest = hashlib.sha1(hashcontents).digest()
-        b32hash = base64.b32encode(digest)
+            hashcontents = bencode.bencode(metadata['info'])
+            digest = hashlib.sha1(hashcontents).digest()
+            b32hash = base64.b32encode(digest)
 
-        params = {'xt': 'urn:btih:%s' % b32hash, 'dn': metadata['info']['name'], 'tr': metadata['announce'], 'xl': metadata['info']['length']}
+            params = {'xt': 'urn:btih:%s' % b32hash, 'dn': metadata['info']['name'], 'tr': metadata['announce'], 'xl': metadata['info']['length']}
 
-        announcestr = ''
-        for announce in metadata['announce-list']:
-            announcestr += '&' + py_urllib.urlencode({'tr':announce[0]})
+            announcestr = ''
+            for announce in metadata['announce-list']:
+                announcestr += '&' + py_urllib.urlencode({'tr':announce[0]})
 
-        paramstr = py_urllib.urlencode(params) + announcestr
-        magneturi = 'magnet:?%s' % paramstr
-        magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
-        logger.debug('magneturi : %s', magneturi)
-        return magneturi
+            paramstr = py_urllib.urlencode(params) + announcestr
+            magneturi = 'magnet:?%s' % paramstr
+            magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
+            logger.debug('magneturi : %s', magneturi)
+            return magneturi
+        else:
+            try:
+                import bencodepy
+            except:
+                os.system("{} install bencode.py".format(app.config['config']['pip']))
+                import bencode
+            torrent = open(file, 'r').read()
+            metadata = bencodepy.decode(torrent)
+
+            hashcontents = bencodepy.encode(metadata['info'])
+            digest = hashlib.sha1(hashcontents).digest()
+            b32hash = base64.b32encode(digest)
+
+            params = {'xt': 'urn:btih:%s' % b32hash, 'dn': metadata['info']['name'], 'tr': metadata['announce'], 'xl': metadata['info']['length']}
+
+            announcestr = ''
+            for announce in metadata['announce-list']:
+                announcestr += '&' + py_urllib.urlencode({'tr':announce[0]})
+
+            paramstr = py_urllib.urlencode(params) + announcestr
+            magneturi = 'magnet:?%s' % paramstr
+            magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
+            logger.debug('magneturi : %s', magneturi)
+            return magneturi
