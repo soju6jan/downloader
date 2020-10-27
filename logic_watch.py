@@ -24,7 +24,7 @@ import sys
 try:
     import bencode
 except:
-    os.system("%s install bencode" % app.config['config']['pip'])
+    os.system("{} install bencode".format(app.config['config']['pip']))
     import bencode
 import hashlib
 import base64
