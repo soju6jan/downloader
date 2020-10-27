@@ -11,7 +11,7 @@ import time
 from datetime import datetime
 
 from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify, session, send_from_directory 
-from framework import py_urllib
+from framework import py_urllib, app
 # 패키지
 from .plugin import package_name, logger
 from .model import ModelSetting, ModelDownloaderItem
@@ -24,7 +24,7 @@ import sys
 try:
     import bencode
 except:
-    os.system("pip install bencode")
+    os.system("%s install bencode" % app.config['config']['pip'])
     import bencode
 import hashlib
 import base64
