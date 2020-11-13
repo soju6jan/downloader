@@ -15,7 +15,7 @@ try:
     import transmissionrpc
 except:
     try:
-        os.system('pip install transmissionrpc')
+        os.system("{} install transmissionrpc".format(app.config['config']['pip']))
         import transmissionrpc
     except:
         pass

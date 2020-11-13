@@ -16,7 +16,7 @@ try:
     from qbittorrent import Client
 except:
     try:
-        os.system('pip install python-qbittorrent')
+        os.system("{} install python-qbittorrent".format(app.config['config']['pip']))
         from qbittorrent import Client
     except:
         pass

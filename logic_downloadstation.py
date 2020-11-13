@@ -15,7 +15,7 @@ try:
     from synolopy import NasApi
 except:
     try:
-        os.system('pip install synolopy')
+        os.system("{} install synolopy".format(app.config['config']['pip']))
         from synolopy import NasApi
     except:
         pass
