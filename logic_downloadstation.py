@@ -19,9 +19,13 @@ from framework import app, db, socketio
 from framework.util import Util, AlchemyEncoder
 
 # third-party
+"""
+from synolopy2 import NasApi
+
 try:
+
     print("111111111111111111111111111")
-    from synolopy import NasApi
+    from synolopy2 import NasApi
 except:
     print("22222222222222222222222")
     try:
@@ -33,6 +37,9 @@ except:
         print("44444444444444444444444444")
         pass
 print("6666666666666666666666666666")
+"""
+
+
 # 패키지
 from .plugin import package_name, logger
 from .model import ModelSetting, ModelDownloaderItem
@@ -66,6 +73,7 @@ class LogicDownloadStation(object):
     @staticmethod
     def connect_test(url, id, pw):
         try:
+            from synolopy2 import NasApi
             ret = {}
             nas = NasApi('%s/webapi/' % url, id, pw)
             data = nas.downloadstation.task.request('list')
@@ -82,6 +90,7 @@ class LogicDownloadStation(object):
     @staticmethod
     def program_init():
         try:
+            from synolopy2 import NasApi
             url = ModelSetting.get('downloadstation_url')
             if url.strip() == '':
                 return
