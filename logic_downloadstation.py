@@ -20,14 +20,19 @@ from framework.util import Util, AlchemyEncoder
 
 # third-party
 try:
+    print("111111111111111111111111111")
     from synolopy import NasApi
 except:
+    print("22222222222222222222222")
     try:
+        print("3333333333333333333333333")
         os.system("{} install synolopy".format(app.config['config']['pip']))
+        print("555555555555555555555555555555")
         from synolopy import NasApi
     except:
+        print("44444444444444444444444444")
         pass
-
+print("6666666666666666666666666666")
 # 패키지
 from .plugin import package_name, logger
 from .model import ModelSetting, ModelDownloaderItem
