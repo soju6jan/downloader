@@ -19,26 +19,6 @@ from framework import app, db, socketio
 from framework.util import Util, AlchemyEncoder
 
 # third-party
-"""
-from synolopy2 import NasApi
-
-try:
-
-    print("111111111111111111111111111")
-    from synolopy2 import NasApi
-except:
-    print("22222222222222222222222")
-    try:
-        print("3333333333333333333333333")
-        os.system("{} install synolopy".format(app.config['config']['pip']))
-        print("555555555555555555555555555555")
-        from synolopy import NasApi
-    except:
-        print("44444444444444444444444444")
-        pass
-print("6666666666666666666666666666")
-"""
-
 
 # 패키지
 from .plugin import package_name, logger
@@ -102,9 +82,8 @@ class LogicDownloadStation(object):
     @staticmethod
     def add_download(url, path):
         try:
-            logger.debug(path)
-            logger.debug([path])
-            path = path.encode('utf8')
+            if app.config['config']['is_py2']:
+                path = path.encode('utf8')
             ret = {}
             if path is not None and path.strip() == '':
                 path = None
