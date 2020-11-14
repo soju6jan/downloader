@@ -203,6 +203,9 @@ class ModelDownloaderItem(db.Model):
             logger.debug('ModelDownloaderItem count:%s', count)
             lists = query.all()
             ret['list'] = [item.as_dict() for item in lists]
+
+
+            logger.debug (ret['list'])
             ret['paging'] = Util.get_paging_info(count, page, page_size)
             return ret
         except Exception as e:
