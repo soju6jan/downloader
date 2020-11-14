@@ -11,6 +11,18 @@ import time
 from datetime import datetime
 import requests
 
+from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify 
+from flask_socketio import SocketIO, emit, send
+from flask_login import login_user, logout_user, current_user, login_required
+
+# sjva 공용
+from framework import app, db, socketio
+from framework.util import Util, AlchemyEncoder
+
+# 패키지
+from .plugin import package_name, logger
+from .model import ModelSetting, ModelDownloaderItem
+
 # third-party
 try:
     from qbittorrent import Client
@@ -20,20 +32,7 @@ except:
         from qbittorrent import Client
     except:
         pass
-
-
-from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify 
-from flask_socketio import SocketIO, emit, send
-from flask_login import login_user, logout_user, current_user, login_required
-
-# sjva 공용
-from framework import db, socketio
-from framework.util import Util, AlchemyEncoder
-
-# 패키지
-from .plugin import package_name, logger
-from .model import ModelSetting, ModelDownloaderItem
-
+        
 #########################################################
 
 class LogicQbittorrent(object):
