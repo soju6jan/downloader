@@ -41,7 +41,6 @@ from .logic_qbittorrent import LogicQbittorrent
 from .logic_aria2 import LogicAria2
 from .logic_watch import LogicWatch
 
-import plugin
 #########################################################
 
 class LogicNormal(object):
