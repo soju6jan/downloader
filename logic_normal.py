@@ -26,11 +26,11 @@ from flask_socketio import SocketIO, emit, send
 
 # sjva 공용
 from framework.logger import get_logger
-from framework import app, db, scheduler, path_app_root
+from framework import app, db, scheduler, path_app_root, SystemModelSetting
 from framework.job import Job
 from framework.util import Util
-from system.model import ModelSetting as SystemModelSetting
 from system.logic import SystemLogic
+from tool_base import ToolBaseNotify
 
 # 패키지
 from .plugin import logger, package_name
@@ -63,8 +63,7 @@ class LogicNormal(object):
             elif where == '3':
                 msg = 'aria2'
             msg += '\n%s 다운로드 완료' % title 
-            import framework.common.notify as Notify
-            Notify.send_message(msg, message_id='downloader_completed_remove')
+            ToolBaseNotify.send_message(msg, message_id='downloader_completed_remove')
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
