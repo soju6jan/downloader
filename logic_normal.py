@@ -93,7 +93,7 @@ class LogicNormal(object):
         try:
 
             ######################## add name to magnet
-            if ModelSetting.get_bool('use_download_name'):
+            if ModelSetting.get_bool('use_download_name') and download_url.lower().find('magnet') != -1:
                 if "&dn=" not in download_url:
                     try:
                         data = {'uri': download_url}
@@ -109,7 +109,7 @@ class LogicNormal(object):
                     except:
                         pass
             ######################## torrent_tracker
-            if ModelSetting.get_bool('use_tracker'):
+            if ModelSetting.get_bool('use_tracker') and download_url.lower().find('magnet') != -1:
                 tracker_list = []
                 tracker_list += [tracker.strip() for tracker in ModelSetting.get('tracker_list').split('\n') if len(tracker.strip()) != 0]
                 tracker_list += [tracker.strip() for tracker in ModelSetting.get('tracker_list_manual').split('\n') if len(tracker.strip()) != 0]
