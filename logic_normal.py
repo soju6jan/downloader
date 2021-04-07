@@ -18,10 +18,7 @@ import threading
 # third-party
 from sqlalchemy import desc
 from sqlalchemy import or_, and_, func, not_
-from telepot import Bot, glance
-from telepot.loop import MessageLoop
 from time import sleep
-import telepot
 from flask_socketio import SocketIO, emit, send
 
 # sjva 공용
