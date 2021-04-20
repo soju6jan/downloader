@@ -14,6 +14,7 @@ import requests
 from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify, session, send_from_directory 
 from flask_socketio import SocketIO, emit, send
 from flask_login import login_user, logout_user, current_user, login_required
+import transmissionrpc
 
 # sjva 공용
 from framework.logger import get_logger
@@ -25,14 +26,7 @@ from .plugin import package_name, logger
 from .model import ModelSetting, ModelDownloaderItem
 
 # third-party
-try:
-    import transmissionrpc
-except:
-    try:
-        os.system("{} install transmissionrpc".format(app.config['config']['pip']))
-        import transmissionrpc
-    except:
-        pass
+
 
 #########################################################
 

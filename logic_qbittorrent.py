@@ -14,6 +14,7 @@ import requests
 from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify 
 from flask_socketio import SocketIO, emit, send
 from flask_login import login_user, logout_user, current_user, login_required
+from qbittorrent import Client
 
 # sjva 공용
 from framework import app, db, socketio
@@ -23,15 +24,7 @@ from framework.util import Util, AlchemyEncoder
 from .plugin import package_name, logger
 from .model import ModelSetting, ModelDownloaderItem
 
-# third-party
-try:
-    from qbittorrent import Client
-except:
-    try:
-        os.system("{} install python-qbittorrent".format(app.config['config']['pip']))
-        from qbittorrent import Client
-    except:
-        pass
+
         
 #########################################################
 
