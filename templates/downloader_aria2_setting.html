@@ -6,7 +6,7 @@
   {{ macros.m_row_start('5') }}
   {{ macros.m_row_end() }}
   <form id='setting' name='setting'>
-    {{ macros.setting_input_text('aria2_url', 'URL', value=arg['aria2_url'], desc='aria2 jsonrpc 경로') }}
+    {{ macros.setting_input_text_and_buttons('aria2_url', 'URL', [['test_btn', '접속 확인']], value=arg['aria2_url'], desc='aria2 jsonrpc 경로') }}
     {{ macros.setting_input_text('aria2_default_path', '다운로드 경로', value=arg['aria2_default_path'], desc=None) }}
   </form>
 </div> <!--전체-->
