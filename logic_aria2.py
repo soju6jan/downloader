@@ -47,7 +47,7 @@ class LogicAria2(object):
         try:
             if sub == 'test':
                 url = req.form['aria2_url']
-                ret = LogicAria2.connect_test(url, id, pw)
+                ret = LogicAria2.connect_test(url)
                 return jsonify(ret)
             elif sub == 'get_status':
                 return jsonify(LogicAria2.get_status())
@@ -60,7 +60,7 @@ class LogicAria2(object):
 
 
     @staticmethod
-    def connect_test(url, id, pw):
+    def connect_test(url):
         try:
             ret = {}
             ret['ret'] = 'success'
