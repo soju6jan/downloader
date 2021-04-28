@@ -116,6 +116,7 @@ class LogicAria2(object):
                 {'jsonrpc':'2.0', 'id':'sjva', 'method':'aria2.tellStopped', 'params':[0,1000]}
             ])
             data = requests.get(ModelSetting.get('aria2_url'), data=jsonreq, headers={'Content-Type': 'application/json; charset=utf-8'}).json()
+            logger.debug(data)
             ret = []
             for t1 in data:
                 for tmp in t1['result']:
