@@ -84,7 +84,8 @@ class LogicAria2(object):
     @staticmethod
     def add_download(url, path):
         try:
-            path = path.encode('utf8')
+            if app.config['config']['is_py2']:
+                path = path.encode('utf8')
             ret = {}
             if path is not None and path.strip() == '':
                 path = None
