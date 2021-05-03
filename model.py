@@ -166,7 +166,9 @@ class ModelDownloaderItem(db.Model):
         else:
             ret['completed_time'] = ''
             ret['timedelta'] = ''
-
+        if app.config['config']['is_py3']:
+            if isinstance(ret['download_path'], (bytes, bytearray)):
+                ret['download_path'] = ret['download_path'].decode('utf-8')
         return ret
     
     @staticmethod
