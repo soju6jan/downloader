@@ -16,7 +16,7 @@ from flask_socketio import SocketIO, emit, send
 from flask_login import login_user, logout_user, current_user, login_required
 
 # sjva 공용
-from framework import db, socketio
+from framework import db, socketio, app
 from framework.util import Util, AlchemyEncoder
 
 # 패키지
