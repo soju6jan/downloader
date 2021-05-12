@@ -142,9 +142,11 @@ class LogicWatch(object):
             except:
                 os.system("{} install bencode".format(app.config['config']['pip']))
                 import bencode
-            torrent = open(file, 'r').read()
-            metadata = bencode.bdecode(torrent)
+            #torrent = open(file, 'r').read()
+            with open(file, 'rb') as f:
+                torrent = f.read()
 
+            metadata = bencode.bdecode(torrent)
             hashcontents = bencode.bencode(metadata['info'])
             digest = hashlib.sha1(hashcontents).digest()
             b32hash = base64.b32encode(digest)
@@ -157,30 +159,15 @@ class LogicWatch(object):
 
             paramstr = py_urllib.urlencode(params) + announcestr
             magneturi = 'magnet:?%s' % paramstr
-            magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
+            magneturi = magneturi.replace('xt=urn%3Abtih%3A', u'xt=urn:btih:', 1)
             logger.debug('magneturi : %s', magneturi)
             return magneturi
         else:
             try:
-                import bencodepy
+                import magneturi
             except:
-                os.system("{} install bencode.py".format(app.config['config']['pip']))
-                import bencode
-            torrent = open(file, 'r').read()
-            metadata = bencodepy.decode(torrent)
-
-            hashcontents = bencodepy.encode(metadata['info'])
-            digest = hashlib.sha1(hashcontents).digest()
-            b32hash = base64.b32encode(digest)
-
-            params = {'xt': 'urn:btih:%s' % b32hash, 'dn': metadata['info']['name'], 'tr': metadata['announce'], 'xl': metadata['info']['length']}
-
-            announcestr = ''
-            for announce in metadata['announce-list']:
-                announcestr += '&' + py_urllib.urlencode({'tr':announce[0]})
-
-            paramstr = py_urllib.urlencode(params) + announcestr
-            magneturi = 'magnet:?%s' % paramstr
-            magneturi = magneturi.replace('xt=urn%3Abtih%3A', 'xt=urn:btih:', 1)
-            logger.debug('magneturi : %s', magneturi)
-            return magneturi
+                os.system('pip install magneturi')
+                import magneturi
+            magnet_uri = magneturi.from_torrent_file(file)
+            logger.debug('magneturi : %s', magnet_uri)
+            return magnet_uri
