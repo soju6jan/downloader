@@ -115,7 +115,6 @@ class LogicWatch(object):
                         LogicNormal.add_download2(magnet, ModelSetting.get('watch_torrent_program'), None, request_type='.torrent', request_sub_type='.torrent')
                         #완료 된 경우 삭제 or 파일명 변환
                         if ModelSetting.get_bool("torrent_delete_yn"):
-                            logger.debug("torrent_delete_yn : %s", torrent_delete_yn)
                             logger.debug("delete torrent file : %s", filepath)
                             os.remove(filepath)
                         else:
