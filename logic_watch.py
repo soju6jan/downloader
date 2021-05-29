@@ -119,7 +119,7 @@ class LogicWatch(object):
                             logger.debug("delete torrent file : %s", filepath)
                             os.remove(filepath)
                         else:
-                            after_filename = file.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
+                            after_filename = filename.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
                             logger.debug("before name : %s, after name : %s", filename, after_filename)
                             #파일 이동
                             shutil.move(filepath, os.path,join(watch_upload_path, after_filename))
