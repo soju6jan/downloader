@@ -121,7 +121,7 @@ class LogicWatch(object):
                             after_filename = filename.replace(".torrent", ".complete", 1).replace(".TORRENT", ".complete", 1)
                             logger.debug("before name : %s, after name : %s", filename, after_filename)
                             #파일 이동
-                            shutil.move(filepath, os.path,join(watch_upload_path, after_filename))
+                            shutil.move(filepath, os.path.join(watch_upload_path, after_filename))
                 except Exception as e: 
                     logger.error('Exception:%s', e)
                     logger.error(traceback.format_exc())
