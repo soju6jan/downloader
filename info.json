@@ -1,1 +1,9 @@
-{"version": "0.1.0.0", "name": "downloader", "category_name": "torrent", "developer": "soju6jan", "description": "\ud1a0\ub80c\ud2b8 \ub2e4\uc6b4\ub85c\ub4dc \ud074\ub77c\uc774\uc5b8\ud2b8 \uc124\uc815", "home": "https://github.com/soju6jan/downloader", "more": ""}
+{
+    "version": "0.1.0.0",
+    "name": "downloader",
+    "category_name": "torrent",
+    "developer": "soju6jan",
+    "description": "토렌트 다운로드 클라이언트 설정",
+    "home": "https://github.com/soju6jan/downloader",
+    "more": ""
+}
