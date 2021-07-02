@@ -39,7 +39,7 @@ class _NasSessionManager(SessionManager):
         return sid
 
 
-def _nas_api(url, login, password):
+def _nas_api(url, login, password, dsm7):
     struct = {
         'URL': url,
         'PATH': {
@@ -178,7 +178,7 @@ def _nas_api(url, login, password):
         'CGI': {
             'auth': {
                 'api': 'SYNO.API.Auth',
-                'version': 2
+                'version': 3 if dsm7 else 2
             },
             'query': {
                 'api': 'SYNO.API.Info',

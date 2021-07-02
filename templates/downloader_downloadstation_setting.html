@@ -10,6 +10,7 @@
     {{ macros.setting_input_text('downloadstation_id', 'ID', value=arg['downloadstation_id'], col='3') }}
     {{ macros.setting_input_text_and_buttons('downloadstation_pw', '암호', [['downloadstation_test_btn', '접속 확인']], value=arg['downloadstation_pw'], col='4', type='password') }}
     {{ macros.setting_input_text('downloadstation_default_path', '다운로드 경로', value=arg['downloadstation_default_path'], placeholder='예) video/download', desc=['기본 다운로드 경로. 생략 시 다운로드스테이션 기본 경로를 사용', '/volume 으로 시작하면 안되며, 공유폴더부터 시작해야 합니다.', '경로에 한글이 포함되어 있으면 안 됩니다.']) }}
+    {{ macros.setting_checkbox('downloadstation_is_dsm7', 'DSM7', value=arg['downloadstation_is_dsm7'], desc=['On : DSM7', 'Off : DSM6']) }}
   </form>
 </div> <!--전체-->
 

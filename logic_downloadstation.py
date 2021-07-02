@@ -55,7 +55,7 @@ class LogicDownloadStation(object):
         try:
             from synolopy2 import NasApi
             ret = {}
-            nas = NasApi('%s/webapi/' % url, id, pw)
+            nas = NasApi('%s/webapi/' % url, id, pw, ModelSetting.get_bool('downloadstation_is_dsm7'))
             data = nas.downloadstation.task.request('list')
             ret['ret'] = 'success'
             ret['current'] = data['total']
@@ -74,7 +74,7 @@ class LogicDownloadStation(object):
             url = ModelSetting.get('downloadstation_url')
             if url.strip() == '':
                 return
-            LogicDownloadStation.program = NasApi('%s/webapi/' % url, ModelSetting.get('downloadstation_id'), ModelSetting.get('downloadstation_pw'))
+            LogicDownloadStation.program = NasApi('%s/webapi/' % url, ModelSetting.get('downloadstation_id'), ModelSetting.get('downloadstation_pw'), ModelSetting.get_bool('downloadstation_is_dsm7'))
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())

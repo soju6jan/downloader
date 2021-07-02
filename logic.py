@@ -55,6 +55,7 @@ class Logic(object):
         'downloadstation_id' : '',
         'downloadstation_pw' : '',
         'downloadstation_default_path' : '',
+        'downloadstation_is_dsm7' : 'False',
 
         'qbittorrnet_url' : '',
         'qbittorrnet_id' : '',
