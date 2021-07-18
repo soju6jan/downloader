@@ -162,7 +162,7 @@ class ModelDownloaderItem(db.Model):
         if ret['completed_time'] is not None and ret['completed_time'] != '':
             ret['completed_time'] = self.completed_time.strftime('%m-%d %H:%M:%S')
             tmp = (self.completed_time - self.created_time).seconds
-            ret['timedelta'] = '%s분 %s초' % ((tmp/60), (tmp%60))
+            ret['timedelta'] = '%s분 %s초' % (int((tmp/60)), (tmp%60))
         else:
             ret['completed_time'] = ''
             ret['timedelta'] = ''
