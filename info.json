@@ -5,5 +5,6 @@
     "developer": "soju6jan",
     "description": "토렌트 다운로드 클라이언트 설정",
     "home": "https://github.com/soju6jan/downloader",
-    "more": ""
+    "more": "",
+    "category": "torrent"
 }
