@@ -265,6 +265,8 @@ class LogicNormal(object):
                     pass
             elif data['content_type'] == 'av':
                 try:
+                    if app.config['config']['level'] <= 4:
+                        return
                     from bot_downloader_av.model import ModelItem
                     flag = ModelItem.receive_share_data(data)
                     logger.debug('process_telegram_data av : %s', flag)
