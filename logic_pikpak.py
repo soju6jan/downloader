@@ -316,11 +316,37 @@ class LogicPikPak(object):
             return None
 
     @staticmethod
+    def refresh_access_token():
+        try:
+            client = LogicPikPak.client
+            if not client:
+                username = ModelSetting.get('pikpak_username')
+                password = ModelSetting.get('pikpak_password')
+                ret = LogicPikPak.login(username, password)
+                if ret['ret'] == 'success':
+                    return True
+                else:
+                    return False
+
+            client.refresh_access_token()
+            return True
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return False
+
+    @staticmethod
     def scheduler_function():
         try:
             logger.debug('[Schduler] PikPak 스케줄 함수 시작')
             from .logic_normal import LogicNormal
             auto_remove_completed = ModelSetting.get_bool('auto_remove_completed')
+
+            while True:
+                if LogicPikPak.refresh_access_token():
+                    break
+                
+                time.sleep(1)
 
             tasks = LogicPikPak.get_status() # 이거 오류가 잦다
             items = ModelDownloaderItem.get_by_program_and_status('4', 'completed', reverse=True)
