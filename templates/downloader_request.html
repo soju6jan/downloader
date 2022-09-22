@@ -18,7 +18,7 @@
     </div>
     </div>
   </div>
-  {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
+  {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2', 'PikPak'], value=arg['default_torrent_program']) }}
   {{ macros.setting_input_text('download_path', '다운로드 경로', value=arg['download_path'], desc=['다운로드 경로. 생략시 토렌트 프로그램의 기본 경로를 사용합니다.']) }}
   {{ macros.setting_button([['download_start', '다운로드']]) }}
   </form>
@@ -58,6 +58,8 @@ function set_default_torrent_program(type) {
     document.getElementById("download_path").value = current_data.qbittorrnet_default_path;
   } else if ( type == '3') {
     document.getElementById("download_path").value = current_data.aria2_default_path;
+  } else if ( type == '4') {
+    document.getElementById("download_path").value = current_data.pikpak_default_path;
   }
 }
 

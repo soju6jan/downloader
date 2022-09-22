@@ -20,7 +20,7 @@
       {{ macros.setting_checkbox('auto_remove_completed', '프로그램에서 완료 목록 삭제', value=arg['auto_remove_completed'], desc='On : 스케쥴러 동작시 혹은 상태 화면 요청시 삭제합니다.') }}
       {{ macros.setting_checkbox('download_completed_telegram_notify', '프로그램에서 완료 목록 삭제시 알림', value=arg['download_completed_telegram_notify'], desc=['On : "프로그램에서 완료 목록 삭제"가 On 되어 있는 경우 삭제시 알림을 보냅니다.', 'ID : downloader_completed_remove']) }}
       {{ macros.setting_input_int('status_interval', '상태 화면 갱신 주기', value=arg['status_interval'], min='1', placeholder='5', desc='second 단위') }}
-      {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2'], value=arg['default_torrent_program']) }}
+      {{ macros.setting_radio('default_torrent_program', '기본 토렌트 프로그램', ['트랜스미션', '다운로드 스테이션', '큐빗토렌트', 'aria2', 'PikPak'], value=arg['default_torrent_program']) }}
       <!--added-->
       {{ macros.setting_checkbox('use_download_name', '마그넷에 이름 추가', value=arg['use_download_name'], desc=['On : 마그넷 정보에 토렌트 이름을 추가합니다.', 
       '이치로님의 torrent_info플러그인이 설치되어있어야 합니다.',

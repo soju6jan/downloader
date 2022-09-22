@@ -21,6 +21,7 @@
               <option value="1">다운로드 스테이션</option>
               <option value="2">큐빗토렌트</option>
               <option value="3">aria2</option>
+              <option value="4">PikPak</option>
             </select>
           </div>
           <div class="col-md-6" style="align-items:left; text-align:left;">
@@ -103,6 +104,10 @@ function make_list(data) {
       tmp = '대기'
       if (data[i].title != '')
         tmp2 = data[i].title + '<br>'
+    } else if (data[i].status == 'moved') {
+      tmp = '<span class="text-success"><strong>이동완료</strong></span>'
+      if (data[i].title != '')
+        tmp2 = data[i].title + '<br>'
     } else if (data[i].status == 'downloading') { 
       tmp = '<span class="text-info"><strong>다운로드중</strong></span>'
       if (data[i].title != '')
@@ -135,6 +140,7 @@ function make_list(data) {
     else if (data[i].torrent_program == '1') tmp = '다운로드스테이션'
     else if (data[i].torrent_program == '2') tmp = '큐빗토렌트'
     else if (data[i].torrent_program == '3') tmp = 'aria2'
+    else if (data[i].torrent_program == '4') tmp = 'PikPak'
 
     tmp += '<br>' + data[i].download_path
     str += m_col(2, tmp);

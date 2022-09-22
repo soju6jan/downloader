@@ -36,6 +36,7 @@ from .logic_transmission import LogicTransmission
 from .logic_downloadstation import LogicDownloadStation
 from .logic_qbittorrent import LogicQbittorrent
 from .logic_aria2 import LogicAria2
+from .logic_pikpak import LogicPikPak
 from .logic_watch import LogicWatch
 
 #########################################################
@@ -59,6 +60,8 @@ class LogicNormal(object):
                 msg = '큐빗토렌트'
             elif where == '3':
                 msg = 'aria2'
+            elif where == '4':
+                msg = 'PikPak'
             msg += '\n%s 다운로드 완료' % title 
             ToolBaseNotify.send_message(msg, message_id='downloader_completed_remove')
         except Exception as e: 
@@ -70,6 +73,7 @@ class LogicNormal(object):
     @staticmethod
     def add_download_by_request(request):
         try:
+            logger.debug(f'add_download_by_req: {request.form}')
             download_url = request.form['download_url'] if 'download_url' in request.form else None
 
             if download_url is None:
@@ -142,6 +146,11 @@ class LogicNormal(object):
                     download_path = arg['aria2_default_path']
                 download_path = LogicNormal.get_download_path(download_path, server_id, download_url, magnet=magnet)
                 ret = LogicAria2.add_download(download_url, download_path)
+            elif default_torrent_program == '4':
+                if download_path is None:
+                    download_path = arg['pikpak_default_path']
+                download_path = LogicNormal.get_download_path(download_path, server_id, download_url, magnet=magnet)
+                ret = LogicPikPak.add_download(download_url, download_path)
 
             ret['default_torrent_program'] = default_torrent_program
             ret['downloader_item_id'] = ModelDownloaderItem.save(ret, request_type, request_sub_type)
@@ -186,6 +195,7 @@ class LogicNormal(object):
             LogicDownloadStation.program_init()
             LogicQbittorrent.program_init()
             LogicAria2.program_init()
+            LogicPikPak.program_init()
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -200,6 +210,7 @@ class LogicNormal(object):
             LogicDownloadStation.scheduler_function()
             LogicQbittorrent.scheduler_function()
             LogicAria2.scheduler_function()
+            LogicPikPak.scheduler_function()
             LogicWatch.scheduler_function()
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -274,4 +285,3 @@ class LogicNormal(object):
                     pass
         except Exception as e: 
             logger.error('Exception:%s', e)
-            #logger.error(traceback.format_exc())

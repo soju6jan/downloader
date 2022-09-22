@@ -136,8 +136,10 @@ class ModelDownloaderItem(db.Model):
     download_path = db.Column(db.String)
     torrent_program = db.Column(db.String)
     program_id = db.Column(db.String)
-    status = db.Column(db.String)
+    task_id = db.Column(db.String)
     completed_time = db.Column(db.DateTime)
+    file_id = db.Column(db.String)
+    status = db.Column(db.String)
     #ktv = db.relationship('ModelDownloaderKtv', backref='downloader_item', lazy=True)
     #download_timeda = db.Column(db.Integer)
 
@@ -170,12 +172,45 @@ class ModelDownloaderItem(db.Model):
             if isinstance(ret['download_path'], (bytes, bytearray)):
                 ret['download_path'] = ret['download_path'].decode('utf-8')
         return ret
+
+    def update(self):
+        db.session.add(self)
+        db.session.commit()
     
+    @staticmethod
+    def get_by_program(program_type):
+        return db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.torrent_program == program_type).all()
+
+    @staticmethod
+    def get_by_id(id):
+        return db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.id == id).first()
+
+    @staticmethod
+    def get_by_task_id(task_id):
+        return db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.task_id == task_id).first()
+
+    @staticmethod
+    def get_by_file_id(file_id):
+        return db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.file_id == file_id).first()
+
+    @staticmethod
+    def get_by_program_and_status(program_type, status, reverse=False):
+        query = db.session.query(ModelDownloaderItem)
+        query = query.filter(ModelDownloaderItem.torrent_program == program_type)
+        if reverse: query = query.filter(not_(ModelDownloaderItem.status == status))
+        else: query = query.filter(ModelDownloaderItem.status == status)
+        return query.all()
+
     @staticmethod
     def save(data, request_type, request_sub_type):
         try:
             if data['ret'] == 'success':
                 item = ModelDownloaderItem(request_type, request_sub_type, data['download_url'], data['download_path'], data['default_torrent_program'])
+                if data['default_torrent_program'] == '4':
+                    item.task_id = data['result']['task']['id']
+                    item.file_id = data['result']['task']['file_id']
+                    item.title = data['result']['task']['name']
+                    
                 db.session.add(item)
                 db.session.commit()
                 return item.id
@@ -207,7 +242,7 @@ class ModelDownloaderItem(db.Model):
             ret['list'] = [item.as_dict() for item in lists]
 
 
-            logger.debug (ret['list'])
+            #logger.debug (ret['list'])
             ret['paging'] = Util.get_paging_info(count, page, page_size)
             return ret
         except Exception as e:
