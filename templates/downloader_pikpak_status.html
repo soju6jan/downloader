@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div>
+  {{ macros.m_hr_head_top() }}
+  {{ macros.m_row_start('0') }}
+  {{ macros.m_col(2,  macros.m_strong('Status')) }}
+  {{ macros.m_col(3,  macros.m_strong('Title')) }}
+  {{ macros.m_col(1,  macros.m_strong('Size')) }}
+  {{ macros.m_col(1,  macros.m_strong('Current')) }}
+  {{ macros.m_col(2,  macros.m_strong('Percent')) }}
+  {{ macros.m_col(1,  macros.m_strong('Speed')) }}
+  {{ macros.m_col(2,  macros.m_strong('Action')) }}
+  {{ macros.m_row_end() }}
+  {{ macros.m_hr_head_bottom() }}
+  <div id="list_div"></div>
+</div> <!--전체-->
+
+<script type="text/javascript">
+var package_name = "{{arg['package_name']}}";
+var sub = "{{arg['sub']}}";
+
+
+$(document).ready(function(){
+  var protocol = window.location.protocol;
+  socket = io.connect(protocol + "//" + document.domain + ":" + location.port + "/" + package_name + '_pikpak');
+
+  socket.on('on_status', function(data){
+    current_data = data
+    on_status(data)
+  });
+
+  $(function() {
+    $.ajax({
+      url: '/'+package_name+'/ajax/'+sub+'/get_status',
+      type: "POST", 
+      cache: false,
+      data: {},
+      dataType: "json",
+      success: function (data) {
+        on_status(data)
+      }
+    });
+  });
+});
+
+$("body").on('click', '#json_btn', function(e){
+  e.preventDefault();
+  hash = $(this).data('hash')
+  for (i in current_data) {
+    if (hash == current_data[i].hash) {
+      m_modal(current_data[i])
+      break
+    }
+  }
+});
+
+$("body").on('click', '#remove_btn', function(e){
+  e.preventDefault();
+  gid = $(this).data('gid')
+  
+  $.ajax({
+    url: '/' + package_name + '/ajax/'+sub+'/remove',
+    type: "POST", 
+    cache: false,
+    data: {gid:gid},
+    dataType: "json",
+    success: function (data) {
+      if (data) {
+        $.notify('<strong>삭제하였습니다.</strong>', {
+          type: 'success'
+        });
+      } else {
+        $.notify('<strong>삭제 실패하였습니다.</strong>', {
+          type: 'warning'
+        });
+      }
+    }
+  });
+});
+
+
+function on_status(data) {
+  make_list(data)
+}
+
+
+function make_list(data) {
+  str = ''
+  //index = 0
+  for (i in data) {
+    //console.log(data[i])
+    str += m_row_start();
+    tmp = (parseInt(i)+1) + '.  ';
+    tmp += data[i].message
+
+    str += m_col(2, tmp);
+    str += m_col(3, data[i].name);
+    str += m_col(1, humanFileSize(data[i].file_size));
+    str += m_col(1, humanFileSize(data[i].file_size*data[i].progress/100));
+    //percent = (data[i].progress * 100).toFixed(1)
+    percent = data[i].progress
+    percent_str = percent + '%'
+    tmp = m_progress2('progress_'+(i), percent, percent_str)
+    str += m_col2(2, tmp);
+
+    str += m_col(1, 'N/A');
+    tmp = m_button('json_btn', 'JSON', [{'key':'gid', 'value':data[i].gid}]);
+    tmp += m_button('remove_btn', '삭제', [{'key':'gid', 'value':data[i].gid}]);
+    
+    tmp = m_button_group(tmp)
+    str += m_col(2, tmp)
+    
+    str += m_row_end();
+    if (i != data.length -1) str += m_hr();
+  }
+  if (str == '') {
+    str = '<br><h4>PikPak에 작업이 없습니다.</h4>'
+  }
+  document.getElementById("list_div").innerHTML = str;
+}
+
+</script>    
+{% endblock %}

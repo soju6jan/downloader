@@ -30,6 +30,7 @@ from .logic_transmission import LogicTransmission
 from .logic_downloadstation import LogicDownloadStation
 from .logic_qbittorrent import LogicQbittorrent
 from .logic_aria2 import LogicAria2
+from .logic_pikpak import LogicPikPak
 from .logic_watch import LogicWatch
 
 #########################################################
@@ -43,7 +44,7 @@ blueprint = Blueprint(package_name, package_name, url_prefix='/%s' %  package_na
 menu = {
     'main' : [package_name, u'다운로드 클라이언트'],
     'sub' : [
-        ['setting', u'기본 설정'], ['watch', u'감시폴더'], ['request', u'다운로드 요청'], ['list', u'목록'], ['transmission', u'트랜스미션'], ['downloadstation', u'다운로드 스테이션'], ['qbittorrent', u'큐빗토렌트'], ['aria2', u'aria2'], ['log', u'로그']
+        ['setting', u'기본 설정'], ['watch', u'감시폴더'], ['request', u'다운로드 요청'], ['list', u'목록'], ['transmission', u'트랜스미션'], ['downloadstation', u'다운로드 스테이션'], ['qbittorrent', u'큐빗토렌트'], ['aria2', u'aria2'], ['pikpak','PikPak'],['log', u'로그']
     ], 
     'sub2' : {
         'transmission' : [
@@ -58,12 +59,15 @@ menu = {
         'aria2' : [
             ['setting', u'설정'], ['status', u'상태']
         ],
+        'pikpak' : [
+            ['setting', u'설정'], ['status', u'상태']
+        ],
     },
     'category' : 'torrent'
 }
 
 plugin_info = {
-    'version' : '0.1.0.0',
+    'version' : '0.1.1.0',
     'name' : 'downloader',
     'category_name' : 'torrent',
     'developer' : 'soju6jan',
@@ -82,7 +86,6 @@ def plugin_unload():
 def process_telegram_data(data):
     LogicNormal.process_telegram_data(data)
 
-
 #########################################################
 # WEB Menu 
 #########################################################
@@ -100,7 +103,7 @@ def first_menu(sub):
         arg['is_running'] = str(scheduler.is_running(package_name))
         arg['tracker_list'] = ModelSetting.get('tracker_list').replace('\n', ', ')
         return render_template('%s_%s.html' % (package_name, sub), arg=arg)
-    elif sub in ['transmission', 'downloadstation', 'qbittorrent', 'aria2']:
+    elif sub in ['transmission', 'downloadstation', 'qbittorrent', 'aria2', 'pikpak']:
         return redirect('/%s/%s/status' % (package_name, sub))
     elif sub in ['request', 'list', 'watch']:
         arg = ModelSetting.to_dict()
@@ -190,6 +193,8 @@ def second_ajax(sub, sub2):
             return LogicAria2.process_ajax(sub2, request)
         elif sub == 'watch':
             return LogicWatch.process_ajax(sub2, request)
+        elif sub == 'pikpak':
+            return LogicPikPak.process_ajax(sub2, request)
     except Exception as e: 
         logger.error('Exception:%s', e)
         logger.error(traceback.format_exc())

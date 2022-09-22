@@ -11,7 +11,7 @@ from datetime import datetime
 # third-party
 
 # sjva 공용
-from framework import db, scheduler, path_data
+from framework import db, scheduler, path_data, path_app_root
 from framework.job import Job
 from framework.util import Util
 
@@ -24,7 +24,7 @@ from .logic_transmission import LogicTransmission
 
 class Logic(object):
     db_default = {
-        'db_version' : '1',
+        'db_version' : '2',
         'auto_start' : 'False',
         'interval' : '10',
         'web_page_size': '30',
@@ -67,6 +67,13 @@ class Logic(object):
         #'aria2_url' : 'http://localhost/aria2/jsonrpc',
         'aria2_url' : '',
         'aria2_default_path' : os.path.join(path_data, 'aria2'),
+
+        # byOrial for PikPak
+        'pikpak_username': '',
+        'pikpak_password': '',
+        'pikpak_default_path': '',
+        'pikpak_move_to_upload': 'False',
+        'pikpak_upload_path': '',
 
         'use_share_upload' : 'False',
         'use_share_upload_make_dir_rule' : '',
@@ -123,7 +130,6 @@ class Logic(object):
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
     
-
     @staticmethod
     def scheduler_start():
         try:
@@ -198,7 +204,19 @@ class Logic(object):
     @staticmethod
     def migration():
         try:
-            pass
+            if ModelSetting.get('db_version') == '1':
+                logger.debug('DB version is 1: migration !! version 2')
+                import sqlite3
+                db_file = os.path.join(path_app_root, 'data', 'db', '%s.db' % package_name)
+                connection = sqlite3.connect(db_file)
+                cursor = connection.cursor()
+                query = 'ALTER TABLE plugin_downloader_item ADD task_id VARCHAR'
+                cursor.execute(query)
+                query = 'ALTER TABLE plugin_downloader_item ADD file_id VARCHAR'
+                cursor.execute(query)
+                connection.close()
+                ModelSetting.set('db_version', '2')
+                db.session.flush()
         except Exception as e:
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -224,6 +242,8 @@ class Logic(object):
             default_path = ModelSetting.get('qbittorrnet_default_path')
         elif default_program == '3':
             default_path = ModelSetting.get('aria2_default_path')
+        elif default_program == '4':
+            default_path = ModelSetting.get('pikpak_default_path')
         return default_program, default_path
 
     @staticmethod
