@@ -57,13 +57,14 @@ $("body").on('click', '#json_btn', function(e){
 
 $("body").on('click', '#remove_btn', function(e){
   e.preventDefault();
-  gid = $(this).data('gid')
+  task_id = $(this).data('task_id');
+  console.log(task_id);
   
   $.ajax({
     url: '/' + package_name + '/ajax/'+sub+'/remove',
     type: "POST", 
     cache: false,
-    data: {gid:gid},
+    data: {task_id:task_id},
     dataType: "json",
     success: function (data) {
       if (data) {
@@ -105,8 +106,8 @@ function make_list(data) {
     str += m_col2(2, tmp);
 
     str += m_col(1, 'N/A');
-    tmp = m_button('json_btn', 'JSON', [{'key':'gid', 'value':data[i].gid}]);
-    tmp += m_button('remove_btn', '삭제', [{'key':'gid', 'value':data[i].gid}]);
+    tmp = m_button('json_btn', 'JSON', [{'key':'task_id', 'value':data[i].id}]);
+    tmp += m_button('remove_btn', '삭제', [{'key':'task_id', 'value':data[i].id}]);
     
     tmp = m_button_group(tmp)
     str += m_col(2, tmp)

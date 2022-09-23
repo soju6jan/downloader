@@ -54,7 +54,7 @@ class LogicPikPak(object):
             elif sub == 'get_status':
                 return jsonify(LogicPikPak.get_status())
             elif sub == 'remove':
-                data = LogicPikPak.remove(request.form['gid'])
+                data = LogicPikPak.remove(request.form['task_id'])
                 return jsonify(data)
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -212,7 +212,7 @@ class LogicPikPak(object):
             if not path or ModelSetting.get('pikpak_default_path') == path:
                 parent_id = LogicPikPak.download_folder_id
             else:
-                ret = LogicPikPak.path_to_id(path)
+                ret = LogicPikPak.path_to_id(path, create=True)
                 if ret['ret'] == 'success':
                     parent_id = ret['data'][-1]['id']
 
@@ -246,9 +246,16 @@ class LogicPikPak(object):
             return ret
     
     @staticmethod
-    def remove(gid):
+    def remove(task_id):
         try:
-            # pikpak 은 자동으로 목록에서 삭제됨 
+            client = LogicPikPak.client
+            url = f"https://{client.PIKPAK_API_HOST}/drive/v1/task:delete"
+            data = { 
+                "type": "offline",
+                "id": task_id,
+            }
+            #ret =  client._request_post(url, data, client.get_headers(), client.proxy)
+            logger.debug('아직 미구현...')
             return True
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -376,6 +383,7 @@ class LogicPikPak(object):
             #logger.debug(f'[scheduler-tasks] {tasks}')
             for item in items:
                 if item.status == 'moved': continue
+                if item.status == 'removed': continue
                 found = False
                 flag_update = False
                 # 진행중인 내역에 있는 경우 처리
@@ -421,11 +429,13 @@ class LogicPikPak(object):
             client = LogicPikPak.client
             ret = client.offline_file_info(file_id)
             #logger.debug(f'[get_download_status] {ret}')
-            return ret
+            return {'ret': 'done', 'data':ret}
         except Exception as e: 
             logger.error('Exception:%s', e)
+            if str(e).find('File or folder is not found') != -1:
+                return {'ret':'not found'}
             logger.error(traceback.format_exc())
-            return None
+            return {'ret':'error'}
 
     @staticmethod
     def move_thread_function():
@@ -440,22 +450,32 @@ class LogicPikPak(object):
                 logger.debug(f'[Move] 이동작업 시작:({name}, {file_id})')
     
                 down_status = LogicPikPak.get_download_status(file_id)
-                if not down_status:
+                if down_status['ret'] == 'not found':
+                    logger.error(f'[Move] 이미삭제된 파일:({name}, {file_id})')
+                    item.status = 'removed'
+                    item.update()
+                    LogicPikPak.MoveQueue.task_done()
+                    continue
+                elif down_status['ret'] == 'error':
                     logger.error(f'[Move] 파일정보 획득 실패:({name}, {file_id})')
                     LogicPikPak.MoveQueue.task_done()
-                    return
+                    continue
                 
                 parent_id = LogicPikPak.upload_folder_id
-                if not parent_id: parent_id = LogicPikPak.path_to_id(ModelSetting.get('pikpak_upload_path'), create=True)
-                if down_status['parent_id'] == parent_id:
+                if not parent_id:
+                    ret = LogicPikPak.path_to_id(ModelSetting.get('pikpak_upload_path'), create=True)
+                    logger.debug(f'PPPPPPPPPRID: {ret}')
+                    parent_id = ret['data'][-1]['id']
+                if down_status['data']['parent_id'] == parent_id:
                     logger.debug(f'[Move] 이미이동된 폴더: {name}')
                     LogicPikPak.MoveQueue.task_done()
-                    return
+                    continue
     
                 result = LogicPikPak.move_file(file_id, parent_id)
                 if not result:
-                    raise(result)
-                    return
+                    logger.error(f'[Move] 파일이동 실패: {name}')
+                    LogicPikPak.MoveQueue.task_done()
+                    continue
     
                 logger.debug(f'[Move] 이동작업 완료: {result}')
                 item.status = 'moved'
