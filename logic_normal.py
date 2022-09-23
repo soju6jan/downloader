@@ -195,7 +195,8 @@ class LogicNormal(object):
             LogicDownloadStation.program_init()
             LogicQbittorrent.program_init()
             LogicAria2.program_init()
-            LogicPikPak.program_init()
+            if ModelSetting.get_bool('pikpak_use'):
+                LogicPikPak.program_init()
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
@@ -210,7 +211,8 @@ class LogicNormal(object):
             LogicDownloadStation.scheduler_function()
             LogicQbittorrent.scheduler_function()
             LogicAria2.scheduler_function()
-            LogicPikPak.scheduler_function()
+            if ModelSetting.get_bool('pikpak_use'):
+                LogicPikPak.scheduler_function()
             LogicWatch.scheduler_function()
         except Exception as e: 
             logger.error('Exception:%s', e)

@@ -6,6 +6,7 @@
   {{ macros.m_row_start('5') }}
   {{ macros.m_row_end() }}
   <form id='setting' name='setting'>
+    {{ macros.setting_checkbox('pikpak_use', 'PikPak 사용여부', value=arg['pikpak_use'], desc=['On : PikPak 사용']) }}
     {{ macros.setting_input_text('pikpak_username', 'PikPak계정', value=arg['pikpak_username'], col="5", desc=None) }}
     {{ macros.setting_input_text_and_buttons('pikpak_password', 'PikPak비밀번호', [['pikpak_login_btn', '접속확인']], col="5",value=arg['pikpak_password'], type='password', desc=None) }}
     {{ macros.setting_input_text('pikpak_default_path', '다운로드 경로', value=arg['pikpak_default_path'], desc='PikPak기준 , /로 시작하는 절대경로') }}

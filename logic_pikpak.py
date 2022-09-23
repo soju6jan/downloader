@@ -367,15 +367,19 @@ class LogicPikPak(object):
     @staticmethod
     def scheduler_function():
         try:
+
             logger.debug('[Schduler] PikPak 스케줄 함수 시작')
+
             from .logic_normal import LogicNormal
             auto_remove_completed = ModelSetting.get_bool('auto_remove_completed')
 
+            i = 0
             while True:
+                if i > 3: return
                 if LogicPikPak.refresh_access_token():
                     break
-                
                 time.sleep(1)
+                i = i + 1
 
             tasks = LogicPikPak.get_status() # 이거 오류가 잦다
             items = ModelDownloaderItem.get_by_program_and_status('4', 'completed', reverse=True)

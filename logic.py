@@ -69,6 +69,7 @@ class Logic(object):
         'aria2_default_path' : os.path.join(path_data, 'aria2'),
 
         # byOrial for PikPak
+        'pikpak_use': 'False',
         'pikpak_username': '',
         'pikpak_password': '',
         'pikpak_default_path': '',
