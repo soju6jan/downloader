@@ -73,7 +73,11 @@ class Logic(object):
         'pikpak_password': '',
         'pikpak_default_path': '',
         'pikpak_move_to_upload': 'False',
+        'pikpak_use_torrent_info': 'True',
         'pikpak_upload_path': '',
+        'pikpak_empty_trash': 'False',
+        'pikpak_temp_path': '/tmp',
+
 
         'use_share_upload' : 'False',
         'use_share_upload_make_dir_rule' : '',

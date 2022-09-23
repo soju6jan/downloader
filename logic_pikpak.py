@@ -38,6 +38,7 @@ class LogicPikPak(object):
     download_folder_id = None
     upload_folder_id = None
     prev_tasks = None
+    torrent_info_installed = False
 
     MoveThread = None
     MoveQueue = None
@@ -159,6 +160,12 @@ class LogicPikPak(object):
             else:
                 logger.debug(f'[PikPak 로그인성공] {username}')
 
+            try:
+                import torrent_info
+                LogicPikPak.torrent_info_installed = True
+            except ImportError:
+                pass
+
             #logger.debug(f'{dir(LogicPikPak.client)}')
             #logger.debug(f'{dir(PikPakApi)}')
             if ModelSetting.get('pikpak_default_path') != '':
@@ -209,9 +216,24 @@ class LogicPikPak(object):
                 if ret['ret'] == 'success':
                     parent_id = ret['data'][-1]['id']
 
-            r = client.offline_download(file_url=url, parent_id=parent_id)
-            logger.debug(f'add-result: {r}')
             ret['ret'] = 'success'
+            if url.startswith('magnet:'):
+                r = client.offline_download(file_url=url, parent_id=parent_id)
+            else:
+                if ModelSetting.get_bool('pikpak_use_torrent_info') and LogicPikPak.torrent_info_installed:
+                    from torrent_info import Logic as TorrentInfo
+                    r = TorrentInfo.parse_torrent_url(url)
+                    #logger.debug(f'torrent_info: {r}')
+                    url = r['magnet_uri']
+                    r = client.offline_download(file_url=url, parent_id=parent_id)
+                else:
+                    logger.debug('TODO: file download 처리 아직 미지원함')
+                    msg = 'torrent 파일 링크를 통한 처리는 아직 지원하지 않습니다<br>torrent_info를 설치해주세요'
+                    socketio.emit('notify', msg, namespace='/framework', broadcast=True)
+                    ret['ret'] = 'failed'
+                    r = {'reason':'not supported torrent file direct download yet'}
+
+            logger.debug(f'add-result: {r}')
             ret['result'] = r
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -381,7 +403,8 @@ class LogicPikPak(object):
                     item.update()
                     LogicNormal.send_telegram('4', item.title)
 
-            LogicPikPak.empty_trash()
+            if ModelSetting.get_bool('pikpak_empty_trash'):
+                LogicPikPak.empty_trash()
 
             if ModelSetting.get_bool('pikpak_move_to_upload'):
                 items = ModelDownloaderItem.get_by_program_and_status('4', 'completed')
@@ -407,39 +430,39 @@ class LogicPikPak(object):
     @staticmethod
     def move_thread_function():
         try:
-            logger.debug('[Move] Move Thread 시작')
-            req = LogicPikPak.MoveQueue.get()
-            item = ModelDownloaderItem.get_by_id(int(req['db_id']))
-
-            name = item.title
-            file_id = item.file_id
-            logger.debug(f'[Move] 이동작업 시작:({name}, {file_id})')
-
-            down_status = LogicPikPak.get_download_status(file_id)
-            if not down_status:
-                logger.error(f'[Move] 파일정보 획득 실패:({name}, {file_id})')
+            while True:
+                logger.debug('[Move] Move Thread 시작')
+                req = LogicPikPak.MoveQueue.get()
+                item = ModelDownloaderItem.get_by_id(int(req['db_id']))
+    
+                name = item.title
+                file_id = item.file_id
+                logger.debug(f'[Move] 이동작업 시작:({name}, {file_id})')
+    
+                down_status = LogicPikPak.get_download_status(file_id)
+                if not down_status:
+                    logger.error(f'[Move] 파일정보 획득 실패:({name}, {file_id})')
+                    LogicPikPak.MoveQueue.task_done()
+                    return
+                
+                parent_id = LogicPikPak.upload_folder_id
+                if not parent_id: parent_id = LogicPikPak.path_to_id(ModelSetting.get('pikpak_upload_path'), create=True)
+                if down_status['parent_id'] == parent_id:
+                    logger.debug(f'[Move] 이미이동된 폴더: {name}')
+                    LogicPikPak.MoveQueue.task_done()
+                    return
+    
+                result = LogicPikPak.move_file(file_id, parent_id)
+                if not result:
+                    raise(result)
+                    return
+    
+                logger.debug(f'[Move] 이동작업 완료: {result}')
+                item.status = 'moved'
+                item.download_path = ModelSetting.get('pikpak_upload_path')
+                item.update()
                 LogicPikPak.MoveQueue.task_done()
-                return
-            
-            parent_id = LogicPikPak.upload_folder_id
-            if not parent_id: parent_id = LogicPikPak.path_to_id(ModelSetting.get('pikpak_upload_path'), create=True)
-            if down_status['parent_id'] == parent_id:
-                logger.debug(f'[Move] 이미이동된 폴더: {name}')
-                LogicPikPak.MoveQueue.task_done()
-                return
-
-
-            result = LogicPikPak.move_file(file_id, parent_id)
-            if not result:
-                raise(result)
-                return
-
-            logger.debug(f'[Move] 이동작업 완료: {result}')
-            item.status = 'moved'
-            item.download_path = ModelSetting.get('pikpak_upload_path')
-            item.update()
-            LogicPikPak.MoveQueue.task_done()
-
+    
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
