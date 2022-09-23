@@ -108,6 +108,10 @@ function make_list(data) {
       tmp = '<span class="text-success"><strong>이동완료</strong></span>'
       if (data[i].title != '')
         tmp2 = data[i].title + '<br>'
+    } else if (data[i].status == 'removed') {
+      tmp = '<span class="text-danger"><strong>삭제됨</strong></span>'
+      if (data[i].title != '')
+        tmp2 = data[i].title + '<br>'
     } else if (data[i].status == 'downloading') { 
       tmp = '<span class="text-info"><strong>다운로드중</strong></span>'
       if (data[i].title != '')
