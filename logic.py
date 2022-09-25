@@ -78,6 +78,8 @@ class Logic(object):
         'pikpak_upload_path': '/Uploads',
         'pikpak_upload_path_rule': '',
         'pikpak_empty_trash': 'False',
+        'pikpak_remain_file_remove': 'True',
+        'pikpak_allow_dup': 'False',
         'pikpak_temp_path': '/tmp',
 
 

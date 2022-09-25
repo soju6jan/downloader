@@ -15,6 +15,8 @@
     {{ macros.setting_input_textarea('pikpak_upload_path_rule', '업로드 경로 규칙', value=arg['pikpak_upload_path_rule'], row='5', desc=['다운완료시 이동할 폴더규칙, "다운로드경로|업로드경로" 여러개입력시 구분자는 엔터','예: "/Downloads|/Uploads','/Movie/Downloads|/Movie/Uploads"','구드업로드 필요시 해당폴더를 대상으로 rclone move 해주세요']) }}
     {{ macros.setting_checkbox('pikpak_use_torrent_info', 'Torrent Info 사용', value=arg['pikpak_use_torrent_info'], desc=['On : TTorrent Info를 사용하여 http url 요청을 처리함(torrent_info 설치필요)','Off: .torrent 파일을 다운받아 처리함']) }}
     {{ macros.setting_checkbox('pikpak_empty_trash', '휴지통 자동 비우기', value=arg['pikpak_empty_trash'], desc=['On : PikPak의 휴지통을 스케쥴작업시 자동으로 비움']) }}
+    {{ macros.setting_checkbox('pikpak_remain_file_remove', '남은 파일 삭제', value=arg['pikpak_remain_file_remove'], desc=['On : 다운로드 미완료된 파일을 작업내역에서 삭제시 남아있는 파일도 삭제']) }}
+    {{ macros.setting_checkbox('pikpak_allow_dup', '중복허용', value=arg['pikpak_allow_dup'], desc=['On : 다운로드 요청시 동일 magnet에 대해 중복허용', '허용여부과 관계없이 전송중인 목록에 있는 경우 중복요청 허용안함']) }}
   </form>
 </div> <!--전체-->
 

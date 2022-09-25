@@ -194,6 +194,10 @@ class ModelDownloaderItem(db.Model):
         return db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.file_id == file_id).first()
 
     @staticmethod
+    def get_by_download_url(url):
+        return db.session.query(ModelDownloaderItem).filter(ModelDownloaderItem.download_url == url).first()
+
+    @staticmethod
     def get_by_program_and_status(program_type, status, reverse=False):
         query = db.session.query(ModelDownloaderItem)
         query = query.filter(ModelDownloaderItem.torrent_program == program_type)
@@ -209,7 +213,8 @@ class ModelDownloaderItem(db.Model):
                 if data['default_torrent_program'] == '4':
                     item.task_id = data['result']['task']['id']
                     item.file_id = data['result']['task']['file_id']
-                    item.title = data['result']['task']['name']
+                    item.title = data['result']['task']['name'] 
+                    if item.title == '': item.title = data['result']['task']['file_name']
                     
                 db.session.add(item)
                 db.session.commit()

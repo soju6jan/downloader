@@ -41,9 +41,13 @@ class LogicPikPak(object):
     upload_folder_id = None
     prev_tasks = None
     torrent_info_installed = False
+    current_tasks = None
 
     MoveThread = None
     MoveQueue = None
+
+    RemoveThread = None
+    RemoveQueue = None
 
     @staticmethod
     def process_ajax(sub, req):
@@ -79,7 +83,7 @@ class LogicPikPak(object):
                     time.sleep(0.5)
 
             c = LogicPikPak.client
-            logger.debug(f'{c.username},{c.user_id},access_token({c.access_token}),refresh_token({c.refresh_token})')
+            logger.debug(f'[로그인성공] {c.username},{c.user_id},access_token({c.access_token}),refresh_token({c.refresh_token})')
             ret['ret'] = 'success'
             tasks = LogicPikPak.get_status()
             ret['current'] = len(tasks)
@@ -209,10 +213,39 @@ class LogicPikPak(object):
                 LogicPikPak.MoveThread.daemon = True
                 LogicPikPak.MoveThread.start()
 
+            if not LogicPikPak.RemoveQueue: LogicPikPak.RemoveQueue = py_queue.Queue()
+            if not LogicPikPak.RemoveThread:
+                LogicPikPak.RemoveThread = threading.Thread(target=LogicPikPak.remove_thread_function, args=())
+                LogicPikPak.RemoveThread.daemon = True
+                LogicPikPak.RemoveThread.start()
+
 
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
+
+    @staticmethod
+    def is_already_included(url):
+        try:
+            tasks = LogicPikPak.current_tasks
+            if not tasks: tasks = LogicPikPak.get_status()
+            for task in tasks:
+                if task['params']['url'] == url:
+                    return True
+
+            # 요청목록 내 중복을 허용한 경우
+            if ModelSetting.get_bool('pikpak_allow_dup'):
+                return False
+
+            if ModelDownloaderItem.get_by_download_url(url):
+                return True
+
+            return False
+
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return False
 
     @staticmethod
     def add_download(url, path):
@@ -222,6 +255,14 @@ class LogicPikPak(object):
             if app.config['config']['is_py2']:
                 path = path.encode('utf8')
             ret = {}
+
+            # 중복 체크
+            if LogicPikPak.is_already_included(url):
+                ret['ret'] = 'error'
+                ret['result'] = {'reason':f'중복 다운로드 요청으로 실패처리함({url},{path})'}
+                logger.info(f'[download] 중복 다운로드 요청으로 실패처리함({url},{path}')
+                return ret
+
             if path is not None and path.strip() == '':
                 path = None
 
@@ -250,7 +291,7 @@ class LogicPikPak(object):
                     ret['ret'] = 'failed'
                     r = {'reason':'not supported torrent file direct download yet'}
 
-            logger.debug(f'add-result: {r}')
+            logger.debug(f'[download] 작업추가: {r}')
             ret['result'] = r
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -261,23 +302,30 @@ class LogicPikPak(object):
             ret['download_url'] = url
             ret['download_path'] = path if path is not None else ''
             return ret
-    
+
     @staticmethod
     def remove(task_id):
         try:
+            item = ModelDownloaderItem.get_by_task_id(task_id)
             client = LogicPikPak.client
-            url = f"https://{client.PIKPAK_API_HOST}/drive/v1/task:delete"
-            data = { 
-                "type": "offline",
-                "id": task_id,
-            }
-            #ret =  client._request_post(url, data, client.get_headers(), client.proxy)
-            logger.debug('아직 미구현...')
-            return True
+            login_headers = client.get_headers()
+            task_text = f'task_ids={task_id}&'
+            url = f"https://{client.PIKPAK_API_HOST}/drive/v1/tasks?{task_text}"
+            res = requests.delete(url, headers=login_headers, proxies=client.proxy, timeout=5)
+            if res.status_code == 200:
+                logger.debug(f'[remove_job] 작업({task_id}) 삭제 완료({res.status_code})')
+                if ModelSetting.get_bool('pikpak_remain_file_remove'):
+                    logger.debug(f'[remove_job] 파일 삭제 요청({task_id})')
+                    LogicPikPak.RemoveQueue.put({'task_id':task_id})
+                return True
+            
+            logger.error(f'[remove_job] {task_id} 삭제 실패({res.status_code})')
+            res.raise_for_status()
+
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
-        return False
+            return False
 
     status_thread = None
     status_thread_running = False
@@ -374,9 +422,10 @@ class LogicPikPak(object):
 
             logger.debug('[Scheduler] 완료된 항목 상태 갱신')
             tasks = LogicPikPak.get_status() # 이거 오류가 잦다
+            LogicPikPak.current_tasks = tasks
             items = ModelDownloaderItem.get_by_program_and_status('4', 'completed', reverse=True)
             #logger.debug(f'[scheduler-items] {items}')
-            #logger.debug(f'[scheduler-tasks] {tasks}')
+            logger.debug(f'[scheduler-tasks] {tasks}')
             for item in items:
                 if item.status == 'moved': continue
                 if item.status == 'removed': continue
@@ -390,7 +439,7 @@ class LogicPikPak(object):
                             item.status = "completed"
                             item.completed_time = datetime.now()
                             flag_update = True
-                        elif task['progress'] > 0:
+                        elif task['progress'] > 0 and item.status != "downloading":
                             item.status = "downloading"
                             flag_update = True
                         else:
@@ -431,7 +480,7 @@ class LogicPikPak(object):
         try:
             client = LogicPikPak.client
             ret = client.offline_file_info(file_id)
-            #logger.debug(f'[get_download_status] {ret}')
+            logger.debug(f'[get_download_status] {ret}')
             return {'ret': 'done', 'data':ret}
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -443,8 +492,8 @@ class LogicPikPak(object):
     @staticmethod
     def move_thread_function():
         try:
+            logger.debug('[Move] Move Thread 시작')
             while True:
-                logger.debug('[Move] Move Thread 시작')
                 req = LogicPikPak.MoveQueue.get()
                 item = ModelDownloaderItem.get_by_id(int(req['db_id']))
     
@@ -488,6 +537,39 @@ class LogicPikPak(object):
             logger.error(traceback.format_exc())
 
     @staticmethod
+    def remove_thread_function():
+        logger.debug('[Remove] Remove Thread 시작')
+        while True:
+            try:
+                req = LogicPikPak.RemoveQueue.get()
+                task_id = req['task_id']
+                item = ModelDownloaderItem.get_by_task_id(task_id)
+    
+                name = item.title
+                file_id = item.file_id
+                logger.debug(f'[Remove] 파일삭제 시작: {name},{file_id},{task_id})')
+
+                if file_id == '':
+                    file_path = os.path.join(item.download_path, item.title)
+                    ret = LogicPikPak.path_to_id(file_path)
+                    if ret['ret'] != 'success':
+                        logger.warning(f'[Remove] 파일정보 획득 실패:({file_id})')
+                        LogicPikPak.RemoveQueue.task_done()
+                        continue
+
+                target_id = ret['data'][-1]['id']
+                ret = LogicPikPak.client.delete_to_trash([target_id])
+                logger.debug(f'[Remove] 파일삭제 완료({ret})')
+                item.status = 'removed'
+                item.update()
+                LogicPikPak.RemoveQueue.task_done()
+    
+            except Exception as e: 
+                logger.error('[Remove] Exception:%s', e)
+                logger.error(traceback.format_exc())
+                LogicPikPak.RemoveQueue.task_done()
+
+    @staticmethod
     def get_upload_path_info(download_path):
         try:
             upload_path = ModelSetting.get('pikpak_upload_path')
@@ -501,6 +583,32 @@ class LogicPikPak(object):
             ret = LogicPikPak.path_to_id(upload_path, create=True)
             upload_folder_id = ret['data'][-1]['id']
             return upload_path, upload_folder_id
+
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return e
+
+    @staticmethod
+    def get_quota_info():
+        try:
+            client = LogicPikPak.client
+            login_headers = client.get_headers()
+            url = f"https://{client.PIKPAK_API_HOST}/drive/v1/about"
+            result = requests.get(url=get_quate_info_url, headers=login_headers,  timeout=5)
+
+            if "error" in result.json():
+                if result.json()['error_code'] == 16:
+                    new_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                    logger.info(f'INFO ({new_time}): 로그인 만료 재로그인')
+                    client.login()
+                    login_headers = client.get_headers()
+                    result = requests.get(url=get_quate_info_url, headers=login_headers, timeout=5)
+                else:
+                    new_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                    logger.error(f"ERROR ({new_time}):f{result.json()['error_description']}")
+
+            return result.json()
 
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -563,7 +671,8 @@ class LogicPikPak(object):
         }
         result = LogicPikPak.client._request_get(list_url, list_data, client.get_headers(), client.proxy)
         return result
-            
+
+# TODO
 sid_list = []
 @socketio.on('connect', namespace='/%s_pikpak' % package_name)
 def connect():
