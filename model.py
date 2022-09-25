@@ -107,10 +107,10 @@ class ModelSetting(db.Model):
             return False
 
     @staticmethod
-    def get_list(key):
+    def get_list(key, delim='\n'):
         try:
             value = ModelSetting.get(key)
-            values = [x.strip().replace(' ', '').strip() for x in value.replace('\n', '|').split('|')]
+            values = [x.strip().replace(' ', '').strip() for x in value.split(delim)]
             values = Util.get_list_except_empty(values)
             return values
         except Exception as e: 

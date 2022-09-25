@@ -26,9 +26,11 @@ from .model import ModelSetting, ModelDownloaderItem
 # pikpak
 try:
     from pikpakapi import PikPakApi
+    from pikpakapi.PikpakException import PikpakException, PikpakAccessTokenExpireException
 except ImportError:
     os.system("{} install pikpakapi".format(app.config['config']['pip']))
     from pikpakapi import PikPakApi
+    from pikpakapi.PikpakException import PikpakException, PikpakAccessTokenExpireException
 
 
 #########################################################
@@ -61,19 +63,23 @@ class LogicPikPak(object):
             logger.error(traceback.format_exc())
 
 
-    def login(username, password):
+    @staticmethod
+    def login(username=None, password=None):
         try:
+            if not username: username = ModelSetting.get('pikpak_username')
+            if not password: password = ModelSetting.get('pikpak_password')
             ret = {}
             LogicPikPak.client = PikPakApi(username=username, password=password)
             while True:
                 try:
                     LogicPikPak.client.login()
                     break
-                except:
+                except Exception as e:
+                    logger.warning('Exception:%s, retry login()', e)
                     time.sleep(0.5)
 
             c = LogicPikPak.client
-            logger.debug(f'{c.username},{c.user_id},{c.access_token},{c.refresh_token}')
+            logger.debug(f'{c.username},{c.user_id},access_token({c.access_token}),refresh_token({c.refresh_token})')
             ret['ret'] = 'success'
             tasks = LogicPikPak.get_status()
             ret['current'] = len(tasks)
@@ -150,15 +156,13 @@ class LogicPikPak(object):
     @staticmethod
     def program_init():
         try:
-            username = ModelSetting.get('pikpak_username')
-            password = ModelSetting.get('pikpak_password')
-            ret = LogicPikPak.login(username, password)
+            ret = LogicPikPak.login()
             if ret['ret'] != 'success':
                 data = '[로그인실패] PikPak 계정정보를 확인해주세요.'
                 socketio.emit('notify', data, namespace='/framework', broadcast=True)
                 return
             else:
-                logger.debug(f'[PikPak 로그인성공] {username}')
+                logger.debug(f'[PikPak 로그인성공] {ModelSetting.get("pikpak_username")}')
 
             try:
                 import torrent_info
@@ -185,6 +189,19 @@ class LogicPikPak(object):
                     LogicPikPak.upload_folder_id = paths[-1]['id']
                 else:
                     logger.error(f'[PikPak: 업로드 폴더 오류{ret["log"]}')
+
+            upload_path_rule = {'default':ModelSetting.get('pikpak_upload_path')}
+            if ModelSetting.get('pikpak_upload_path_rule') != '':
+                try:
+                    rules = ModelSetting.get_list('pikpak_upload_path_rule', '\n')
+                    for rule in rules:
+                        dn, up = rule.split('|')
+                        upload_path_rule[dn] = up
+                    LogicPikPak.upload_path_rule = upload_path_rule
+                except Exception as e:
+                    logger.error(f'[PikPak: 업로드 규칙 설정 오류: {e}')
+                    msg = '업로드 경로 규칙을 설정해주세요'
+                    socketio.emit('notify', msg, namespace='/framework', broadcast=True)
 
             if not LogicPikPak.MoveQueue: LogicPikPak.MoveQueue = py_queue.Queue()
             if not LogicPikPak.MoveThread:
@@ -333,6 +350,9 @@ class LogicPikPak(object):
                 try:
                     data = LogicPikPak.client.offline_list()
                     if data: break
+                except PikpakAccessTokenExpireException as e:
+                    logger.warning('Exception:%s', e)
+                    LogicPikPak.login()
                 except Exception as e:
                     logger.warning('Exception:%s', e)
                     time.sleep(1)
@@ -345,42 +365,14 @@ class LogicPikPak(object):
             return None
 
     @staticmethod
-    def refresh_access_token():
-        try:
-            client = LogicPikPak.client
-            if not client:
-                username = ModelSetting.get('pikpak_username')
-                password = ModelSetting.get('pikpak_password')
-                ret = LogicPikPak.login(username, password)
-                if ret['ret'] == 'success':
-                    return True
-                else:
-                    return False
-
-            client.refresh_access_token()
-            return True
-        except Exception as e: 
-            logger.error('Exception:%s', e)
-            logger.error(traceback.format_exc())
-            return False
-
-    @staticmethod
     def scheduler_function():
         try:
-
-            logger.debug('[Schduler] PikPak 스케줄 함수 시작')
+            logger.debug('[Scheduler] PikPak 스케줄 함수 시작')
 
             from .logic_normal import LogicNormal
             auto_remove_completed = ModelSetting.get_bool('auto_remove_completed')
 
-            i = 0
-            while True:
-                if i > 3: return
-                if LogicPikPak.refresh_access_token():
-                    break
-                time.sleep(1)
-                i = i + 1
-
+            logger.debug('[Scheduler] 완료된 항목 상태 갱신')
             tasks = LogicPikPak.get_status() # 이거 오류가 잦다
             items = ModelDownloaderItem.get_by_program_and_status('4', 'completed', reverse=True)
             #logger.debug(f'[scheduler-items] {items}')
@@ -412,16 +404,23 @@ class LogicPikPak(object):
                     flag_update = True
 
                 if flag_update:
+                    logger.debug(f'[Scheduler] 항목 갱신: {item.title}, {item.status}')
                     item.update()
                     LogicNormal.send_telegram('4', item.title)
 
-            if ModelSetting.get_bool('pikpak_empty_trash'):
-                LogicPikPak.empty_trash()
-
             if ModelSetting.get_bool('pikpak_move_to_upload'):
+                logger.debug('[Scheduler] 완료 항목 이동처리 시작')
                 items = ModelDownloaderItem.get_by_program_and_status('4', 'completed')
+                nitems = len(items)
                 for item in items:
                     LogicPikPak.MoveQueue.put({'db_id':item.id})
+                logger.debug(f'[Scheduler] 완료 항목 이동처리 요청완료:{nitems} 건')
+
+            if ModelSetting.get_bool('pikpak_empty_trash'):
+                logger.debug('[Scheduler] 휴지통 비우기 작업 시작')
+                LogicPikPak.empty_trash()
+
+            logger.debug('[Scheduler] PikPak 스케줄 작업 완료')
 
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -464,12 +463,9 @@ class LogicPikPak(object):
                     logger.error(f'[Move] 파일정보 획득 실패:({name}, {file_id})')
                     LogicPikPak.MoveQueue.task_done()
                     continue
-                
-                parent_id = LogicPikPak.upload_folder_id
-                if not parent_id:
-                    ret = LogicPikPak.path_to_id(ModelSetting.get('pikpak_upload_path'), create=True)
-                    logger.debug(f'PPPPPPPPPRID: {ret}')
-                    parent_id = ret['data'][-1]['id']
+
+                upload_path, parent_id = LogicPikPak.get_upload_path_info(item.download_path)
+
                 if down_status['data']['parent_id'] == parent_id:
                     logger.debug(f'[Move] 이미이동된 폴더: {name}')
                     LogicPikPak.MoveQueue.task_done()
@@ -490,6 +486,26 @@ class LogicPikPak(object):
         except Exception as e: 
             logger.error('Exception:%s', e)
             logger.error(traceback.format_exc())
+
+    @staticmethod
+    def get_upload_path_info(download_path):
+        try:
+            upload_path = ModelSetting.get('pikpak_upload_path')
+            rules = LogicPikPak.upload_path_rule
+            if download_path in rules:
+                upload_path = rules[download_path]
+
+            if upload_path == ModelSetting.get('pikpak_upload_path'):
+                return upload_path, LogicPikPak.upload_folder_id
+
+            ret = LogicPikPak.path_to_id(upload_path, create=True)
+            upload_folder_id = ret['data'][-1]['id']
+            return upload_path, upload_folder_id
+
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return e
 
     @staticmethod
     def move_file(file_id, parent_id):
@@ -513,7 +529,7 @@ class LogicPikPak(object):
             while True:
                 result = LogicPikPak.trash_list(next_page_token)
                 if result:
-                    logger.debug(f'{result}')
+                    #logger.debug(f'{result}')
                     next_page_token = result['next_page_token']
                     file_ids = file_ids + list(x['id'] for x in result['files'])
                     if next_page_token == '': break
@@ -522,12 +538,12 @@ class LogicPikPak(object):
                     continue
 
             count = len(file_ids)
-            logger.debug(f'[empty_trash] {count} files in trash')
+            logger.debug(f'[empty_trash] {count} 개의 아이템이 휴지통에 있음')
             result = None
             for i in range(0, count, 100):
                 del_ids = file_ids[i:i+100]
                 result = LogicPikPak.client.delete_forever(del_ids)
-                logger.debug(f'[empty_trash] result({result})')
+                logger.debug(f'[empty_trash] 휴지통 비우기 완료({i}~{len(del_ids)}, 결과({result})')
             
         except Exception as e: 
             logger.error('Exception:%s', e)
