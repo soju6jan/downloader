@@ -290,6 +290,29 @@ class LogicPikPak(object):
                     socketio.emit('notify', msg, namespace='/framework', broadcast=True)
                     ret['ret'] = 'failed'
                     r = {'reason':'not supported torrent file direct download yet'}
+                    """
+                    fname = os.path.split(url)[1]
+                    fpath = os.path.join('/tmp', fname)
+                    from tool_base.file import ToolBaseFile
+
+                    if ToolBaseFile.download(url, fpath):
+                        file_hash, file_size, file_name = LogicPikPak.get_hash_from_torrent(fpath)
+                        logger.debug(f'[download] {file_hash}, {file_size}, {file_name}')
+                        upload_url = f"https://{client.PIKPAK_API_HOST}/drive/v1/files"
+                        upload_data = {
+                                'kind': 'drive#file',
+                                'name': file_name,
+                                'size': int(file_size),
+                                'hash': file_hash,
+                                'upload_type': "UPLOAD_TYPE_RESUMABLE",
+                                'objProvider': {'provider': 'UPLOAD_TYPE_UNKNOW'}}
+
+                        r = client._request_post(upload_url, upload_data, client.get_headers(), client.proxy)
+                    else:
+                        ret['ret'] = 'failed'
+                        r = {'reason':f'failed to download file({url})'}
+
+                    """
 
             logger.debug(f'[download] 작업추가: {r}')
             ret['result'] = r
@@ -469,6 +492,8 @@ class LogicPikPak(object):
                 logger.debug('[Scheduler] 휴지통 비우기 작업 시작')
                 LogicPikPak.empty_trash()
 
+            q = LogicPikPak.get_quota_info()
+            logger.debug(f'[quota] {q}')
             logger.debug('[Scheduler] PikPak 스케줄 작업 완료')
 
         except Exception as e: 
@@ -595,7 +620,7 @@ class LogicPikPak(object):
             client = LogicPikPak.client
             login_headers = client.get_headers()
             url = f"https://{client.PIKPAK_API_HOST}/drive/v1/about"
-            result = requests.get(url=get_quate_info_url, headers=login_headers,  timeout=5)
+            result = requests.get(url=url, headers=login_headers,  timeout=5)
 
             if "error" in result.json():
                 if result.json()['error_code'] == 16:
@@ -603,7 +628,7 @@ class LogicPikPak(object):
                     logger.info(f'INFO ({new_time}): 로그인 만료 재로그인')
                     client.login()
                     login_headers = client.get_headers()
-                    result = requests.get(url=get_quate_info_url, headers=login_headers, timeout=5)
+                    result = requests.get(url=url, headers=login_headers, timeout=5)
                 else:
                     new_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
                     logger.error(f"ERROR ({new_time}):f{result.json()['error_description']}")
@@ -671,6 +696,41 @@ class LogicPikPak(object):
         }
         result = LogicPikPak.client._request_get(list_url, list_data, client.get_headers(), client.proxy)
         return result
+
+    @staticmethod
+    def get_hash_from_torrent(fpath):
+        import hashlib, zipfile
+
+        h = hashlib.sha1()
+        fname, ext = os.path.splitext(fpath)
+        if ext == '.zip':
+            with zipfile.ZipFile(fpath, 'r') as zip_ref:
+                zip_ref.extractall('/tmp/')
+
+            flist = zip_ref.namelist()
+            for fname in flist:
+                if fname.endswith('.torrent'):
+                    fpath = os.path.join('/tmp', fname)
+
+        size = os.path.getsize(fpath)
+        psize = 0x40000
+        while size / psize > 0x200 and psize < 0x200000:
+            psize = psize << 1
+        with open(fpath, 'rb') as f:
+            data = f.read(psize)
+            while data:
+                h.update(hashlib.sha1(data).digest())
+                data = f.read(psize)
+    
+        file_hash = h.hexdigest().upper()
+        file_size = os.path.getsize(fpath)
+        filename = os.path.split(fpath)[1]
+
+        for fname in flist:
+            tmp_file = os.path.join('/tmp', fname)
+            os.remove(tmp_file)
+    
+        return file_hash, file_size, filename
 
 # TODO
 sid_list = []

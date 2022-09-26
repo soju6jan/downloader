@@ -46,9 +46,9 @@ $(document).ready(function(){
 
 $("body").on('click', '#json_btn', function(e){
   e.preventDefault();
-  hash = $(this).data('hash')
+  task_id = $(this).data('task_id')
   for (i in current_data) {
-    if (hash == current_data[i].hash) {
+    if (task_id == current_data[i].id) {
       m_modal(current_data[i])
       break
     }
