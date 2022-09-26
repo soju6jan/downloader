@@ -129,6 +129,9 @@ def second_menu(sub, sub2):
             arg = {}
             arg['package_name'] = package_name
             arg['sub'] = sub
+            if sub == 'pikpak' and LogicPikPak.CurrentQuota:
+                arg['pikpak_quota_limit'] = LogicPikPak.CurrentQuota['quota']['limit']
+                arg['pikpak_quota_use'] = LogicPikPak.CurrentQuota['quota']['usage']
             return render_template('%s_%s_%s.html' % (package_name, sub, sub2), arg=arg)
         return render_template('sample.html', title='%s - %s - %s' % (package_name, sub, sub2))
     except Exception as e: 

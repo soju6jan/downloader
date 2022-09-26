@@ -2,6 +2,10 @@
 {% block content %}
 
 <div>
+  <div class="row">
+    <div class="col-9"></div>
+    <div class="col-3" id="quota_usage">사용량: </div>
+  </div>
   {{ macros.m_hr_head_top() }}
   {{ macros.m_row_start('0') }}
   {{ macros.m_col(2,  macros.m_strong('Status')) }}
@@ -19,9 +23,13 @@
 <script type="text/javascript">
 var package_name = "{{arg['package_name']}}";
 var sub = "{{arg['sub']}}";
+var quota_limit = "{{arg['pikpak_quota_limit']}}";
+var quota_use = "{{arg['pikpak_quota_use']}}";
 
 
 $(document).ready(function(){
+  console.log(quota_limit);
+  console.log(quota_use);
   var protocol = window.location.protocol;
   socket = io.connect(protocol + "//" + document.domain + ":" + location.port + "/" + package_name + '_pikpak');
 
@@ -29,6 +37,10 @@ $(document).ready(function(){
     current_data = data
     on_status(data)
   });
+  total = humanFileSize(quota_limit);
+  use = humanFileSize(quota_use);
+  quota_str = "<strong>드라이브사용량</strong>: " +use+ "/" + total + "("+(100*(parseInt(quota_use)/parseInt(quota_limit))).toFixed(2)+"%)";
+  document.getElementById("quota_usage").innerHTML = quota_str;
 
   $(function() {
     $.ajax({
