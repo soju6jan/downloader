@@ -18,6 +18,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 # sjva 공용
 from framework import app, db, socketio, path_data, path_app_root, py_queue
 from framework.util import Util, AlchemyEncoder
+from tool_base import ToolBaseNotify
 
 # 패키지
 from .plugin import package_name, logger
@@ -529,9 +530,40 @@ class LogicPikPak(object):
                 logger.debug('[Scheduler] 휴지통 비우기 작업 시작')
                 LogicPikPak.empty_trash()
 
-            LogicPikPak.CurrentQuota = LogicPikPak.get_quota_info()
-            logger.debug(f'[quota] {LogicPikPak.CurrentQuota}')
+            LogicPikPak.check_drive_quota()
             logger.debug('[Scheduler] PikPak 스케줄 작업 완료')
+
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+
+    @staticmethod
+    def get_human_size(num, suffix="B"):
+        for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+            if abs(num) < 1024.0:
+                return f"{num:3.1f}{unit}{suffix}"
+            num /= 1024.0
+        return f'{num:.1f}Yi{suffix}'
+
+    @staticmethod
+    def check_drive_quota():
+        try:
+            client = LogicPikPak.client
+            quota = LogicPikPak.get_quota_info()
+            LogicPikPak.CurrentQuota = quota
+            logger.debug(f'[quota] {LogicPikPak.CurrentQuota}')
+
+            if ModelSetting.get_int('pikpak_quota_alert') > 0:
+                limit = int(quota['quota']['limit'])
+                use = int(quota['quota']['usage'])
+                if int(use/limit*100) >= ModelSetting.get_int('pikpak_quota_alert'):
+                    c = LogicPikPak.get_human_size(use)
+                    l = LogicPikPak.get_human_size(limit)
+                    per = 100 - round(use/limit*100, 2)
+                    msg = f'[사용량 경고] PikPak 사용량이 {per}% 남았습니다.\n'
+                    msg = msg + f'현재 사용량: {c}/{l}'
+                    ToolBaseNotify.send_message(msg, message_id='pikpak_quota_alert')
 
         except Exception as e: 
             logger.error('Exception:%s', e)

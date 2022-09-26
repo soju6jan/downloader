@@ -80,6 +80,7 @@ class Logic(object):
         'pikpak_empty_trash': 'False',
         'pikpak_remain_file_remove': 'True',
         'pikpak_allow_dup': 'False',
+        'pikpak_quota_alert': '0',
         'pikpak_temp_path': '/tmp',
 
 
