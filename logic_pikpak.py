@@ -18,6 +18,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 # sjva 공용
 from framework import app, db, socketio, path_data, path_app_root, py_queue
 from framework.util import Util, AlchemyEncoder
+from tool_base import ToolBaseNotify
 
 # 패키지
 from .plugin import package_name, logger
@@ -48,6 +49,8 @@ class LogicPikPak(object):
 
     RemoveThread = None
     RemoveQueue = None
+    
+    CurrentQuota = None
 
     @staticmethod
     def process_ajax(sub, req):
@@ -280,39 +283,27 @@ class LogicPikPak(object):
             else:
                 if ModelSetting.get_bool('pikpak_use_torrent_info') and LogicPikPak.torrent_info_installed:
                     from torrent_info import Logic as TorrentInfo
-                    r = TorrentInfo.parse_torrent_url(url)
-                    #logger.debug(f'torrent_info: {r}')
-                    url = r['magnet_uri']
-                    r = client.offline_download(file_url=url, parent_id=parent_id)
+                    try:
+                        r = TorrentInfo.parse_torrent_url(url)
+                        #logger.debug(f'torrent_info: {r}')
+                        url = r['magnet_uri']
+                        r = client.offline_download(file_url=url, parent_id=parent_id)
+                    except RuntimeError:
+                        logger.info(f'[download] torrent file 아님 일반다운로드 요청 처리({url})')
+                        fname = os.path.split(url)[1]
+                        fpath = os.path.join(path, fname)
+                        logger.debug(f'일반파일 다운로드: {url}')
+                        th = threading.Thread(target=LogicPikPak.download_thread_function, args=(url, fpath, parent_id))
+                        th.start()
+                        r = {'task': {'id': url, 'name': fname, 'file_id': fpath, 'file_name': fname}}
                 else:
-                    logger.debug('TODO: file download 처리 아직 미지원함')
-                    msg = 'torrent 파일 링크를 통한 처리는 아직 지원하지 않습니다<br>torrent_info를 설치해주세요'
-                    socketio.emit('notify', msg, namespace='/framework', broadcast=True)
-                    ret['ret'] = 'failed'
-                    r = {'reason':'not supported torrent file direct download yet'}
-                    """
                     fname = os.path.split(url)[1]
-                    fpath = os.path.join('/tmp', fname)
-                    from tool_base.file import ToolBaseFile
+                    fpath = os.path.join(path, fname)
 
-                    if ToolBaseFile.download(url, fpath):
-                        file_hash, file_size, file_name = LogicPikPak.get_hash_from_torrent(fpath)
-                        logger.debug(f'[download] {file_hash}, {file_size}, {file_name}')
-                        upload_url = f"https://{client.PIKPAK_API_HOST}/drive/v1/files"
-                        upload_data = {
-                                'kind': 'drive#file',
-                                'name': file_name,
-                                'size': int(file_size),
-                                'hash': file_hash,
-                                'upload_type': "UPLOAD_TYPE_RESUMABLE",
-                                'objProvider': {'provider': 'UPLOAD_TYPE_UNKNOW'}}
-
-                        r = client._request_post(upload_url, upload_data, client.get_headers(), client.proxy)
-                    else:
-                        ret['ret'] = 'failed'
-                        r = {'reason':f'failed to download file({url})'}
-
-                    """
+                    logger.debug(f'일반파일 다운로드: {url}')
+                    th = threading.Thread(target=LogicPikPak.download_thread_function, args=(url, fpath, parent_id))
+                    th.start()
+                    r = {'task': {'id': url, 'name': fname, 'file_id': fpath, 'file_name': fname}}
 
             logger.debug(f'[download] 작업추가: {r}')
             ret['result'] = r
@@ -325,6 +316,48 @@ class LogicPikPak(object):
             ret['download_url'] = url
             ret['download_path'] = path if path is not None else ''
             return ret
+
+    @staticmethod
+    def get_filename_from_cd(cd):
+        if not cd:
+            return None
+        fname = re.findall('filename=(.+)', cd)
+        if len(fname) == 0:
+            return None
+        return fname[0].replace('"', '')
+
+    @staticmethod
+    def download_thread_function(url, fpath, parent_id):
+        try:
+            ret  = {}
+            client = LogicPikPak.client
+
+            r = requests.get(url, allow_redirects=True)
+            filename = LogicPikPak.get_filename_from_cd(r.headers.get('content-disposition'))
+            if not filename:
+                filename = os.path.split(fpath)[1]
+            
+            filepath = os.path.join('/tmp', filename)
+            logger.debug(f'[down-file] Direct download : {filepath}')
+            open(filepath, 'wb').write(r.content)
+            magnet_uri = LogicPikPak.get_magnet_uri_from_file(filepath)
+
+            r = client.offline_download(file_url=magnet_uri, parent_id=parent_id)
+            logger.debug(f'[download] 작업추가: {r}')
+            item = ModelDownloaderItem.get_by_task_id(url)
+            item.download_url = magnet_uri
+            item.task_id = r['task']['id']
+            task = LogicPikPak.get_status(task_id=item.task_id)
+            item.file_id = task['file_id']
+            item.title = task['name'] 
+            if item.title == '': item.title = task['file_name']
+            if r['task']['phase'] == 'PHASE_TYPE_RUNNING':
+                item.status = 'downloading'
+            item.update()
+            if os.path.exists(filepath): os.remove(filepath)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
 
     @staticmethod
     def remove(task_id):
@@ -414,7 +447,7 @@ class LogicPikPak(object):
 
 
     @staticmethod
-    def get_status():
+    def get_status(task_id = None):
         try:
             data = None
             while True:
@@ -429,6 +462,11 @@ class LogicPikPak(object):
                     time.sleep(1)
 
             #logger.debug(f'{data}')
+            if task_id:
+                for task in data['tasks']:
+                    if task['id'] == task_id:
+                        return task
+
             return data['tasks']
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -492,9 +530,40 @@ class LogicPikPak(object):
                 logger.debug('[Scheduler] 휴지통 비우기 작업 시작')
                 LogicPikPak.empty_trash()
 
-            q = LogicPikPak.get_quota_info()
-            logger.debug(f'[quota] {q}')
+            LogicPikPak.check_drive_quota()
             logger.debug('[Scheduler] PikPak 스케줄 작업 완료')
+
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+
+    @staticmethod
+    def get_human_size(num, suffix="B"):
+        for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
+            if abs(num) < 1024.0:
+                return f"{num:3.1f}{unit}{suffix}"
+            num /= 1024.0
+        return f'{num:.1f}Yi{suffix}'
+
+    @staticmethod
+    def check_drive_quota():
+        try:
+            client = LogicPikPak.client
+            quota = LogicPikPak.get_quota_info()
+            LogicPikPak.CurrentQuota = quota
+            logger.debug(f'[quota] {LogicPikPak.CurrentQuota}')
+
+            if ModelSetting.get_int('pikpak_quota_alert') > 0:
+                limit = int(quota['quota']['limit'])
+                use = int(quota['quota']['usage'])
+                if int(use/limit*100) >= ModelSetting.get_int('pikpak_quota_alert'):
+                    c = LogicPikPak.get_human_size(use)
+                    l = LogicPikPak.get_human_size(limit)
+                    per = 100 - round(use/limit*100, 2)
+                    msg = f'[사용량 경고] PikPak 사용량이 {per}% 남았습니다.\n'
+                    msg = msg + f'현재 사용량: {c}/{l}'
+                    ToolBaseNotify.send_message(msg, message_id='pikpak_quota_alert')
 
         except Exception as e: 
             logger.error('Exception:%s', e)
@@ -528,22 +597,30 @@ class LogicPikPak(object):
     
                 down_status = LogicPikPak.get_download_status(file_id)
                 if down_status['ret'] == 'not found':
-                    logger.error(f'[Move] 이미삭제된 파일:({name}, {file_id})')
-                    item.status = 'removed'
-                    item.update()
-                    LogicPikPak.MoveQueue.task_done()
-                    continue
+                    fpath = os.path.join(item.download_path, item.title)
+                    ret = LogicPikPak.path_to_id(fpath)
+                    if ret['ret'] == 'success':
+                        paths = ret['data']
+                        file_id = paths[-1]['id']
+                        item.file_id = file_id
+                        upload_path, parent_id = LogicPikPak.get_upload_path_info(item.download_path)
+                    else:
+                        logger.error(f'[Move] 이미삭제된 파일:({name}, {file_id})')
+                        item.status = 'removed'
+                        item.update()
+                        LogicPikPak.MoveQueue.task_done()
+                        continue
                 elif down_status['ret'] == 'error':
                     logger.error(f'[Move] 파일정보 획득 실패:({name}, {file_id})')
                     LogicPikPak.MoveQueue.task_done()
                     continue
+                else:
+                    upload_path, parent_id = LogicPikPak.get_upload_path_info(item.download_path)
 
-                upload_path, parent_id = LogicPikPak.get_upload_path_info(item.download_path)
-
-                if down_status['data']['parent_id'] == parent_id:
-                    logger.debug(f'[Move] 이미이동된 폴더: {name}')
-                    LogicPikPak.MoveQueue.task_done()
-                    continue
+                    if down_status['data']['parent_id'] == parent_id:
+                        logger.debug(f'[Move] 이미이동된 폴더: {name}')
+                        LogicPikPak.MoveQueue.task_done()
+                        continue
     
                 result = LogicPikPak.move_file(file_id, parent_id)
                 if not result:
@@ -698,39 +775,53 @@ class LogicPikPak(object):
         return result
 
     @staticmethod
-    def get_hash_from_torrent(fpath):
-        import hashlib, zipfile
+    def get_magnet_uri_from_file(fpath):
+        try:
+            is_zip = False
+            found = False
+            fname, ext = os.path.splitext(fpath)
+            torrent_path = None
 
-        h = hashlib.sha1()
-        fname, ext = os.path.splitext(fpath)
-        if ext == '.zip':
-            with zipfile.ZipFile(fpath, 'r') as zip_ref:
-                zip_ref.extractall('/tmp/')
+            if ext == '.zip':
+                import zipfile
+                is_zip = True
+                with zipfile.ZipFile(fpath, 'r') as zip_ref:
+                    zip_ref.extractall('/tmp/')
 
-            flist = zip_ref.namelist()
-            for fname in flist:
-                if fname.endswith('.torrent'):
-                    fpath = os.path.join('/tmp', fname)
+                flist = zip_ref.namelist()
+                for fname in flist:
+                    if fname.lower().endswith('.torrent'):
+                        found = True
+                        torrent_path = os.path.join('/tmp', fname)
+                        break
+            elif ext.lower() == '.torrent':
+                found = True
+                torrent_path = fpath
 
-        size = os.path.getsize(fpath)
-        psize = 0x40000
-        while size / psize > 0x200 and psize < 0x200000:
-            psize = psize << 1
-        with open(fpath, 'rb') as f:
-            data = f.read(psize)
-            while data:
-                h.update(hashlib.sha1(data).digest())
-                data = f.read(psize)
-    
-        file_hash = h.hexdigest().upper()
-        file_size = os.path.getsize(fpath)
-        filename = os.path.split(fpath)[1]
+            if found:
+                try:
+                    import magneturi
+                except ImportError:
+                    os.system("{} install magneturi".format(app.config['config']['pip']))
+                    import magneturi
 
-        for fname in flist:
-            tmp_file = os.path.join('/tmp', fname)
-            os.remove(tmp_file)
-    
-        return file_hash, file_size, filename
+                magnet_uri = magneturi.from_torrent_file(torrent_path)
+                logger.debug(f'magneturi: {magnet_uri}')
+            else:
+                logger.error(f'file not supported: {fpath}')
+                magnet_uri = None
+
+        except Exception as e:
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+
+        finally:
+            if is_zip:
+                for fname in flist:
+                    if os.path.exists(os.path.join('/tmp',fname)):
+                        os.remove(os.path.join('/tmp',fname))
+                zip_ref.close()
+            return magnet_uri
 
 # TODO
 sid_list = []
