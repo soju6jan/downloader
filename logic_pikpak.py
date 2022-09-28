@@ -116,7 +116,7 @@ class LogicPikPak(object):
                 data = client.file_list(parent_id=parent_id, next_page_token=next_page_token)
                 file_id = ""
                 for f in data.get("files", []):
-                    if (f.get("kind", "") == "drive#folder" and f.get("name") == paths[count]):
+                    if f.get("name") == paths[count]:
                         file_id = f.get("id")
                         break
 
@@ -601,6 +601,12 @@ class LogicPikPak(object):
                     ret = LogicPikPak.path_to_id(fpath)
                     if ret['ret'] == 'success':
                         paths = ret['data']
+                        if len(paths) != len(Util.get_list_except_empty(fpath.split('/'))):
+                            logger.error(f'[Move] 이미삭제된 파일:({name}, {file_id})')
+                            item.status = 'removed'
+                            item.update()
+                            LogicPikPak.MoveQueue.task_done()
+                            continue
                         file_id = paths[-1]['id']
                         item.file_id = file_id
                         upload_path, parent_id = LogicPikPak.get_upload_path_info(item.download_path)
