@@ -9,7 +9,7 @@ import threading
 import json
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Blueprint, request, Response, send_file, render_template, redirect, jsonify 
 from flask_socketio import SocketIO, emit, send
@@ -360,7 +360,7 @@ class LogicPikPak(object):
             logger.error(traceback.format_exc())
 
     @staticmethod
-    def remove(task_id):
+    def remove(task_id, expired=False):
         try:
             item = ModelDownloaderItem.get_by_task_id(task_id)
             client = LogicPikPak.client
@@ -372,7 +372,7 @@ class LogicPikPak(object):
                 logger.debug(f'[remove_job] 작업({task_id}) 삭제 완료({res.status_code})')
                 if ModelSetting.get_bool('pikpak_remain_file_remove'):
                     logger.debug(f'[remove_job] 파일 삭제 요청({task_id})')
-                    LogicPikPak.RemoveQueue.put({'task_id':task_id})
+                    LogicPikPak.RemoveQueue.put({'task_id':task_id, 'expired':expired})
                 return True
             
             logger.error(f'[remove_job] {task_id} 삭제 실패({res.status_code})')
@@ -490,6 +490,7 @@ class LogicPikPak(object):
             for item in items:
                 if item.status == 'moved': continue
                 if item.status == 'removed': continue
+                if item.status == 'expired': continue
                 found = False
                 flag_update = False
                 # 진행중인 내역에 있는 경우 처리
@@ -519,16 +520,22 @@ class LogicPikPak(object):
                     LogicNormal.send_telegram('4', item.title)
 
             if ModelSetting.get_bool('pikpak_move_to_upload'):
-                logger.debug('[Scheduler] 완료 항목 이동처리 시작')
+                logger.debug('[Scheduler] 완료항목 이동처리 시작')
                 items = ModelDownloaderItem.get_by_program_and_status('4', 'completed')
                 nitems = len(items)
                 for item in items:
                     LogicPikPak.MoveQueue.put({'db_id':item.id})
-                logger.debug(f'[Scheduler] 완료 항목 이동처리 요청완료:{nitems} 건')
+                logger.debug(f'[Scheduler] 완료항목 이동처리 요청완료:{nitems} 건')
+
+            if ModelSetting.get_int('pikpak_expired_limit') > 0:
+                logger.debug(f'[Scheduler] 만료항목 삭제처리 시작(기준시간: {ModelSetting.get("pikpak_expired_limit")}시간)')
+                count = LogicPikPak.remove_expired()
+                logger.debug(f'[Scheduler] 만료항목 삭제처리 요청완료({count} 건)')
 
             if ModelSetting.get_bool('pikpak_empty_trash'):
                 logger.debug('[Scheduler] 휴지통 비우기 작업 시작')
-                LogicPikPak.empty_trash()
+                count = LogicPikPak.empty_trash()
+                logger.debug(f'[Scheduler] 휴지통 비우기 작업 완료({count} 건)')
 
             LogicPikPak.check_drive_quota()
             logger.debug('[Scheduler] PikPak 스케줄 작업 완료')
@@ -552,15 +559,16 @@ class LogicPikPak(object):
             client = LogicPikPak.client
             quota = LogicPikPak.get_quota_info()
             LogicPikPak.CurrentQuota = quota
-            logger.debug(f'[quota] {LogicPikPak.CurrentQuota}')
+            #logger.debug(f'[quota] {LogicPikPak.CurrentQuota}')
 
             if ModelSetting.get_int('pikpak_quota_alert') > 0:
                 limit = int(quota['quota']['limit'])
                 use = int(quota['quota']['usage'])
+                c = LogicPikPak.get_human_size(use)
+                l = LogicPikPak.get_human_size(limit)
+                per = 100 - round(use/limit*100, 2)
+                logger.debug(f'[quota] 현재 사용량: {c}/{l} ({round(use/limit*100,2)}%)')
                 if int(use/limit*100) >= ModelSetting.get_int('pikpak_quota_alert'):
-                    c = LogicPikPak.get_human_size(use)
-                    l = LogicPikPak.get_human_size(limit)
-                    per = 100 - round(use/limit*100, 2)
                     msg = f'[사용량 경고] PikPak 사용량이 {per}% 남았습니다.\n'
                     msg = msg + f'현재 사용량: {c}/{l}'
                     ToolBaseNotify.send_message(msg, message_id='pikpak_quota_alert')
@@ -652,10 +660,12 @@ class LogicPikPak(object):
                 req = LogicPikPak.RemoveQueue.get()
                 task_id = req['task_id']
                 item = ModelDownloaderItem.get_by_task_id(task_id)
+                if 'expired' in req: expired = req['expired']
+                else: expired = False
     
                 name = item.title
                 file_id = item.file_id
-                logger.debug(f'[Remove] 파일삭제 시작: {name},{file_id},{task_id})')
+                logger.debug(f'[Remove] 파일삭제 시작: {name},{file_id},{task_id},expired({expired})')
 
                 if file_id == '':
                     file_path = os.path.join(item.download_path, item.title)
@@ -665,10 +675,15 @@ class LogicPikPak(object):
                         LogicPikPak.RemoveQueue.task_done()
                         continue
 
-                target_id = ret['data'][-1]['id']
-                ret = LogicPikPak.client.delete_to_trash([target_id])
-                logger.debug(f'[Remove] 파일삭제 완료({ret})')
-                item.status = 'removed'
+                paths = ret['data']
+                if len(paths) != len(Util.get_list_except_empty(file_path.split('/'))):
+                    logger.error(f'[Remove] 이미삭제된 파일:({name}, {file_id})')
+                else:
+                    target_id = ret['data'][-1]['id']
+                    ret = LogicPikPak.client.delete_to_trash([target_id])
+                    logger.debug(f'[Remove] 파일삭제 완료({ret})')
+
+                item.status = 'removed' if not expired else 'expired'
                 item.update()
                 LogicPikPak.RemoveQueue.task_done()
     
@@ -737,6 +752,28 @@ class LogicPikPak(object):
             return e
 
     @staticmethod
+    def remove_expired():
+        try:
+            count = 0
+            limit = ModelSetting.get_int('pikpak_expired_limit')
+            items = ModelDownloaderItem.get_by_program_and_status('4', ['downloading','request'])
+            now = datetime.now()
+            for item in items:
+                if (item.created_time + timedelta(hours=limit)) <= now:
+                    over = now - item.created_time
+                    logger.debug(f'[expired] {item.title} 다운로드 허용시간 만료({over})')
+                    logger.debug(f'[expired] {item.title} 작업 및 파일 삭제 요청')
+                    LogicPikPak.remove(item.task_id, expired=True)
+                    count = count + 1
+
+            return count
+            
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return -1
+
+    @staticmethod
     def empty_trash():
         try:
             result = None
@@ -754,12 +791,14 @@ class LogicPikPak(object):
                     continue
 
             count = len(file_ids)
-            logger.debug(f'[empty_trash] {count} 개의 아이템이 휴지통에 있음')
+            #logger.debug(f'[empty_trash] {count} 개의 아이템이 휴지통에 있음')
             result = None
             for i in range(0, count, 100):
                 del_ids = file_ids[i:i+100]
                 result = LogicPikPak.client.delete_forever(del_ids)
                 logger.debug(f'[empty_trash] 휴지통 비우기 완료({i}~{len(del_ids)}, 결과({result})')
+
+            return count
             
         except Exception as e: 
             logger.error('Exception:%s', e)

@@ -201,8 +201,19 @@ class ModelDownloaderItem(db.Model):
     def get_by_program_and_status(program_type, status, reverse=False):
         query = db.session.query(ModelDownloaderItem)
         query = query.filter(ModelDownloaderItem.torrent_program == program_type)
-        if reverse: query = query.filter(not_(ModelDownloaderItem.status == status))
-        else: query = query.filter(ModelDownloaderItem.status == status)
+        if type(status) == list:
+            conditions = []
+            for st in status:
+                if reverse:
+                    conditions.append(not_(ModelDownloaderItem.status == st))
+                else:
+                    conditions.append(ModelDownloaderItem.status == st)
+
+            if reverse: query = query.filter(and_(*conditions))
+            else: query = query.filter(or_(*conditions))
+        else:
+            if reverse: query = query.filter(not_(ModelDownloaderItem.status == status))
+            else: query = query.filter(ModelDownloaderItem.status == status)
         return query.all()
 
     @staticmethod
