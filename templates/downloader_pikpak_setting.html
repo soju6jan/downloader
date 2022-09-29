@@ -16,6 +16,7 @@
     {{ macros.setting_checkbox('pikpak_use_torrent_info', 'Torrent Info 사용', value=arg['pikpak_use_torrent_info'], desc=['On : TTorrent Info를 사용하여 http url 요청을 처리함(torrent_info 설치필요)','Off: .torrent 파일을 다운받아 처리함']) }}
     {{ macros.setting_checkbox('pikpak_empty_trash', '휴지통 자동 비우기', value=arg['pikpak_empty_trash'], desc=['On : PikPak의 휴지통을 스케쥴작업시 자동으로 비움']) }}
     {{ macros.setting_checkbox('pikpak_remain_file_remove', '남은 파일 삭제', value=arg['pikpak_remain_file_remove'], desc=['On : 다운로드 미완료된 파일을 작업내역에서 삭제시 남아있는 파일도 삭제']) }}
+    {{ macros.setting_input_int('pikpak_expired_limit', '다운로드 만료시간', min='0', value=arg['pikpak_expired_limit'], desc=['지정된 시간동안 다운로드가 완료되지 않은 경우 해당 작업과 파일을 삭제함', '시간단위, 0인경우 삭제하지 않음']) }}
     {{ macros.setting_checkbox('pikpak_allow_dup', '중복허용', value=arg['pikpak_allow_dup'], desc=['On : 다운로드 요청시 동일 magnet에 대해 중복허용', '허용여부과 관계없이 전송중인 목록에 있는 경우 중복요청 허용안함']) }}
     {{ macros.setting_input_int('pikpak_quota_alert', '사용량 알림', min='0', max='100', value=arg['pikpak_quota_alert'], desc=['드라이브 사용량 알림을 전송할 기준(%기준)', '0인경우 전송하지 않음, msgssage_id=pikpak_quota_alert']) }}
   </form>
