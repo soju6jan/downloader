@@ -421,10 +421,11 @@ class LogicPikPak(object):
                         # 완료되서 삭제된 항목 업데이트 
                         if not found:
                             ditem = ModelDownloaderItem.get_by_task_id(task['id'])
-                            ditem.status = "completed"
-                            ditem.completed_time = datetime.now()
-                            ditem.update()
-                            LogicNormal.send_telegram('4', ditem.title)
+                            if ditem.status != 'expired':
+                                ditem.status = "completed"
+                                ditem.completed_time = datetime.now()
+                                ditem.update()
+                                LogicNormal.send_telegram('4', ditem.title)
 
                 for item in data:
                     ditem = ModelDownloaderItem.get_by_task_id(item['id'])
