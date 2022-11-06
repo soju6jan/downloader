@@ -604,6 +604,7 @@ class LogicPikPak(object):
                 file_id = item.file_id
                 logger.debug(f'[Move] 이동작업 시작:({name}, {file_id})')
     
+                upload_path = None
                 down_status = LogicPikPak.get_download_status(file_id)
                 if down_status['ret'] == 'not found':
                     fpath = os.path.join(item.download_path, item.title)
@@ -645,7 +646,7 @@ class LogicPikPak(object):
     
                 logger.debug(f'[Move] 이동작업 완료: {result}')
                 item.status = 'moved'
-                item.download_path = ModelSetting.get('pikpak_upload_path')
+                item.download_path = upload_path if not upload_path else ModelSetting.get('pikpak_upload_path')
                 item.update()
                 LogicPikPak.MoveQueue.task_done()
     
@@ -759,12 +760,31 @@ class LogicPikPak(object):
             limit = ModelSetting.get_int('pikpak_expired_limit')
             items = ModelDownloaderItem.get_by_program_and_status('4', ['downloading','request'])
             now = datetime.now()
+            remove_list = []
             for item in items:
                 if (item.created_time + timedelta(hours=limit)) <= now:
                     over = now - item.created_time
                     logger.debug(f'[expired] {item.title} 다운로드 허용시간 만료({over})')
                     logger.debug(f'[expired] {item.title} 작업 및 파일 삭제 요청')
                     LogicPikPak.remove(item.task_id, expired=True)
+                    remove_list.append(item.task_id)
+                    count = count + 1
+
+            tasks = LogicPikPak.get_status()
+            for task in tasks:
+                if task['id'] in remove_list: continue
+                try:
+                    tm_str = re.sub(r"[.]\d{3}[+]\d{2}[:]\d{2}$", "", task['created_time'])
+                    created_time = datetime.strptime(tm_str, '%Y-%m-%dT%H:%M:%S')
+                except ValueError:
+                    logger.warning(f'[expired] {task["file_name"]} 시간파싱 오류({task["created_time"]})')
+                    continue
+
+                if (created_time + timedelta(hours=limit)) <= now:
+                    over = now - created_time
+                    logger.debug(f'[expired] {task["file_name"]} 다운로드 허용시간 만료({over})')
+                    logger.debug(f'[expired] {task["file_name"]} 작업 및 파일 삭제 요청')
+                    LogicPikPak.remove(task['id'], expired=True)
                     count = count + 1
 
             return count
