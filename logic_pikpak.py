@@ -83,8 +83,11 @@ class LogicPikPak(object):
                     try_cnt = try_cnt + 1
                     client.login()
                     if client.access_token != None: break
-                    logger.warning(f'[로드인 실패] access_token is None(시도횟수: {try_cnt}')
-                    if try_cnt > 10: break
+                    logger.warning(f'[로그인 실패] access_token is None(시도횟수: {try_cnt}')
+                    if try_cnt > 10:
+                        ret['ret'] = 'fail'
+                        ret['log'] = 'failed to get access_token'
+                        return ret
                     time.sleep(0.5)
                 except Exception as e:
                     logger.warning('Exception:%s, retry login()', e)
