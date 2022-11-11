@@ -76,17 +76,22 @@ class LogicPikPak(object):
             if not username: username = ModelSetting.get('pikpak_username')
             if not password: password = ModelSetting.get('pikpak_password')
             ret = {}
-            LogicPikPak.client = PikPakApi(username=username, password=password)
+            client = PikPakApi(username=username, password=password)
+            try_cnt = 0
             while True:
                 try:
-                    LogicPikPak.client.login()
-                    break
+                    try_cnt = try_cnt + 1
+                    client.login()
+                    if client.access_token != None: break
+                    logger.warning(f'[로드인 실패] access_token is None(시도횟수: {try_cnt}')
+                    if try_cnt > 10: break
+                    time.sleep(0.5)
                 except Exception as e:
                     logger.warning('Exception:%s, retry login()', e)
                     time.sleep(0.5)
 
-            c = LogicPikPak.client
-            logger.debug(f'[로그인성공] {c.username},{c.user_id},access_token({c.access_token}),refresh_token({c.refresh_token})')
+            LogicPikPak.client = client
+            logger.debug(f'[로그인성공] {client.username},{client.user_id},access_token({client.access_token}),refresh_token({client.refresh_token})')
             ret['ret'] = 'success'
             tasks = LogicPikPak.get_status()
             ret['current'] = len(tasks)
