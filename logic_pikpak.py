@@ -286,8 +286,19 @@ class LogicPikPak(object):
                     parent_id = ret['data'][-1]['id']
 
             ret['ret'] = 'success'
+            cached = False
+            cached_only = ModelSetting.get_bool('pikpak_cached_only')
+
             if url.startswith('magnet:'):
-                r = client.offline_download(file_url=url, parent_id=parent_id)
+                if cached_only:
+                    rlist = LogicPikPak.get_resource_list(url)
+                    cached = LogicPikPak.is_cached(rlist)
+
+                if cached_only == False or cached:
+                    r = client.offline_download(file_url=url, parent_id=parent_id)
+                else:
+                    logger.debug(f'PikPak서버에 캐시가 존재하지 않아 대기처리({url})')
+                    r = {'task': {'id': url, 'name':rlist['list']['resources'][0]['name'], 'file_id':'', 'status':'waiting'}}
             else:
                 if ModelSetting.get_bool('pikpak_use_torrent_info') and LogicPikPak.torrent_info_installed:
                     from torrent_info import Logic as TorrentInfo
@@ -295,7 +306,15 @@ class LogicPikPak(object):
                         r = TorrentInfo.parse_torrent_url(url)
                         #logger.debug(f'torrent_info: {r}')
                         url = r['magnet_uri']
-                        r = client.offline_download(file_url=url, parent_id=parent_id)
+                        if cached_only:
+                            rlist = LogicPikPak.get_resource_list(url)
+                            cached = LogicPikPak.is_cached(rlist)
+
+                        if cached_only == False or cached:
+                            r = client.offline_download(file_url=url, parent_id=parent_id)
+                        else:
+                            logger.debug(f'PikPak서버에 캐시가 존재하지 않아 대기처리({url})')
+                            r = {'task': {'id': url, 'name':rlist['list']['resources'][0]['name'], 'file_id':'', 'status':'waiting'}}
                     except RuntimeError:
                         logger.info(f'[download] torrent file 아님 일반다운로드 요청 처리({url})')
                         fname = os.path.split(url)[1]
@@ -339,6 +358,8 @@ class LogicPikPak(object):
         try:
             ret  = {}
             client = LogicPikPak.client
+            cached = False
+            cached_only = ModelSetting.get_bool('pikpak_cached_only')
 
             r = requests.get(url, allow_redirects=True)
             filename = LogicPikPak.get_filename_from_cd(r.headers.get('content-disposition'))
@@ -350,17 +371,28 @@ class LogicPikPak(object):
             open(filepath, 'wb').write(r.content)
             magnet_uri = LogicPikPak.get_magnet_uri_from_file(filepath)
 
-            r = client.offline_download(file_url=magnet_uri, parent_id=parent_id)
-            logger.debug(f'[download] 작업추가: {r}')
-            item = ModelDownloaderItem.get_by_task_id(url)
-            item.download_url = magnet_uri
-            item.task_id = r['task']['id']
-            task = LogicPikPak.get_status(task_id=item.task_id)
-            item.file_id = task['file_id']
-            item.title = task['name'] 
-            if item.title == '': item.title = task['file_name']
-            if r['task']['phase'] == 'PHASE_TYPE_RUNNING':
-                item.status = 'downloading'
+            if cached_only:
+                rlist = LogicPikPak.get_resource_list(magnet_uri)
+                cached = LogicPikPak.is_cached(rlist)
+
+            if cached_only == False or cached:
+                r = client.offline_download(file_url=magnet_uri, parent_id=parent_id)
+                logger.debug(f'[download] 작업추가: {r}')
+                item = ModelDownloaderItem.get_by_task_id(url)
+                item.download_url = magnet_uri
+                item.task_id = r['task']['id']
+                task = LogicPikPak.get_status(task_id=item.task_id)
+                item.file_id = task['file_id']
+                item.title = task['name'] 
+                if item.title == '': item.title = task['file_name']
+                if r['task']['phase'] == 'PHASE_TYPE_RUNNING':
+                    item.status = 'downloading'
+            else: # cache_only == True and cached == False 인 케이스
+                item = ModelDownloaderItem.get_by_task_id(url)
+                item.download_url = magnet_uri
+                item.task_id = magnet_uri
+                item.status = 'waiting'
+
             item.update()
             if os.path.exists(filepath): os.remove(filepath)
         except Exception as e: 
@@ -500,6 +532,27 @@ class LogicPikPak(object):
                 if item.status == 'moved': continue
                 if item.status == 'removed': continue
                 if item.status == 'expired': continue
+
+                # 캐시대기 아이템 확인 및 처리
+                if item.status == 'waiting':
+                    logger.debug(f'[scheduler] 대기상태의 파일 처리 시작')
+                    client = LogicPikPak.client
+                    rlist = LogicPikPak.get_resource_list(item.download_url)
+                    if not LogicPikPak.is_cached(rlist):
+                        logger.debug(f'[scheduler] {item.title}: 캐시없음 - 대기처리')
+                        continue
+                    ret = LogicPikPak.path_to_id(item.download_path, create=True)
+                    if ret['ret'] == 'success': parent_id = ret['data'][-1]['id']
+                    r = client.offline_download(file_url=item.download_url, parent_id=parent_id)
+                    logger.debug(f'[scheduler] {item.title}: 캐시확인 - 다운로드요청')
+                    item.task_id = r['task']['id']
+                    item.file_id = r['task']['file_id']
+                    item.title = r['task']['name']
+                    if item.title == '': item.title = r['result']['task']['file_name']
+                    item.status = 'downloading'
+                    item.update()
+                    continue
+
                 found = False
                 flag_update = False
                 # 진행중인 내역에 있는 경우 처리
@@ -896,6 +949,35 @@ class LogicPikPak(object):
                         os.remove(os.path.join('/tmp',fname))
                 zip_ref.close()
             return magnet_uri
+
+    @staticmethod
+    def is_cached(resource_list):
+        try:
+            if 'thumbnail_link' in resource_list['list']['resources'][0]['meta']:
+                return True
+            return False
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return False
+
+
+    @staticmethod
+    def get_resource_list(magnet):
+        try:
+            data = {}
+            client = LogicPikPak.client
+            data['urls'] = magnet
+            data['page_size'] = 500
+            data['thumbnail_type'] = "FROM_HASH"
+            url = f"https://{client.PIKPAK_API_HOST}/drive/v1/resource/list"
+            return client._request_post(url, data, client.get_headers(), client.proxy)
+        except Exception as e: 
+            logger.error('Exception:%s', e)
+            logger.error(traceback.format_exc())
+            return None
+
+
 
 # TODO
 sid_list = []

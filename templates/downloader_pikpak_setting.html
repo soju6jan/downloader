@@ -19,6 +19,7 @@
     {{ macros.setting_input_int('pikpak_expired_limit', '다운로드 만료시간', min='0', value=arg['pikpak_expired_limit'], desc=['지정된 시간동안 다운로드가 완료되지 않은 경우 해당 작업과 파일을 삭제함', '시간단위, 0인경우 삭제하지 않음']) }}
     {{ macros.setting_checkbox('pikpak_allow_dup', '중복허용', value=arg['pikpak_allow_dup'], desc=['On : 다운로드 요청시 동일 magnet에 대해 중복허용', '허용여부과 관계없이 전송중인 목록에 있는 경우 중복요청 허용안함']) }}
     {{ macros.setting_input_int('pikpak_quota_alert', '사용량 알림', min='0', max='100', value=arg['pikpak_quota_alert'], desc=['드라이브 사용량 알림을 전송할 기준(%기준)', '0인경우 전송하지 않음, msgssage_id=pikpak_quota_alert']) }}
+    {{ macros.setting_checkbox('pikpak_cached_only', '추가시 캐시체크여부', value=arg['pikpak_cached_only'], desc=['On : 다운로드를 추가할때 PikPak서버에 캐시된 데이터인지 확인 후 캐시된 경우만 추가']) }}
   </form>
 </div> <!--전체-->
 
