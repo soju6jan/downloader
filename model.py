@@ -226,6 +226,8 @@ class ModelDownloaderItem(db.Model):
                     item.file_id = data['result']['task']['file_id']
                     item.title = data['result']['task']['name'] 
                     if item.title == '': item.title = data['result']['task']['file_name']
+                    if 'status' in data['result']['task']:
+                        item.status = data['result']['task']['status']
                     
                 db.session.add(item)
                 db.session.commit()

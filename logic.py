@@ -83,7 +83,7 @@ class Logic(object):
         'pikpak_quota_alert': '0',
         'pikpak_temp_path': '/tmp',
         'pikpak_expired_limit': '0',
-
+        'pikpak_cached_only': 'True',
 
         'use_share_upload' : 'False',
         'use_share_upload_make_dir_rule' : '',
